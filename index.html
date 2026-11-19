@@ -4,32 +4,129 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HASSO - Social Media</title>
+<title>HASSO - Connect. Share. Belong.</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial;background:#f0f2f5;color:#172033}
-header{background:#102b59;color:white;padding:18px;font-size:28px;font-weight:bold}
-.hero{text-align:center;padding:70px 15px;background:linear-gradient(130deg,#102b59,#2875db);color:white}
-.hero h1{font-size:42px}
-.hero p{font-size:17px}
-button{padding:13px 25px;border:0;border-radius:8px;background:white;color:#102b59;font-weight:bold}
-.cards{max-width:850px;margin:30px auto;padding:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}
-.card{background:white;padding:25px;border-radius:12px;text-align:center}
-footer{text-align:center;background:#102b59;color:white;padding:20px}
+header{background:#102b59;color:white;padding:20px;font-size:28px;font-weight:bold}
+main{max-width:430px;margin:35px auto;padding:15px}
+.card{background:white;padding:25px;border-radius:15px;box-shadow:0 3px 15px #0001}
+h1{text-align:center;color:#102b59}
+p{text-align:center;color:#64748b}
+input{width:100%;padding:14px;margin:9px 0;border:1px solid #ccd3df;border-radius:8px;font-size:16px}
+button{width:100%;padding:14px;margin-top:10px;border:0;border-radius:8px;background:#1769d2;color:white;font-size:16px;font-weight:bold}
+button.secondary{background:#102b59}
+#message{text-align:center;margin-top:15px;font-size:14px}
+#dashboard{display:none}
+footer{text-align:center;padding:25px;color:#64748b}
 </style>
 </head>
 <body>
+
 <header>HASSO</header>
-<section class="hero">
+
+<main>
+<div class="card" id="auth">
 <h1>Welcome to HASSO</h1>
 <p>Connect. Share. Belong.</p>
-<button onclick="alert('HASSO is coming soon!')">Join HASSO</button>
-</section>
-<section class="cards">
-<div class="card"><h2>👥 Friends</h2><p>Connect with people.</p></div>
-<div class="card"><h2>📝 Posts</h2><p>Share your moments.</p></div>
-<div class="card"><h2>💬 Messages</h2><p>Stay connected.</p></div>
-</section>
-<footer>© 2026 HASSO</footer>
+
+<input id="name" type="text" placeholder="Your full name">
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password (at least 6 characters)">
+
+<button onclick="register()">Create Account</button>
+<button class="secondary" onclick="login()">Login</button>
+
+<div id="message"></div>
+</div>
+
+<div class="card" id="dashboard">
+<h1>Welcome!</h1>
+<p id="userEmail"></p>
+<p>Your HASSO account is active.</p>
+<button onclick="logout()">Logout</button>
+</div>
+</main>
+
+<footer>© 2026 HASSO. Connect. Share. Belong.</footer>
+
+<script type="module">
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+getAuth,
+createUserWithEmailAndPassword,
+signInWithEmailAndPassword,
+onAuthStateChanged,
+signOut,
+updateProfile
+} from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
+authDomain: "hasso-4bc9e.firebaseapp.com",
+projectId: "hasso-4bc9e",
+storageBucket: "hasso-4bc9e.firebasestorage.app",
+messagingSenderId: "150032029282",
+appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b",
+measurementId: "G-R9GFYDVN4Q"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const message = document.getElementById("message");
+
+window.register = async function() {
+const name = document.getElementById("name").value.trim();
+const email = document.getElementById("email").value.trim();
+const password = document.getElementById("password").value;
+
+if(!name || !email || !password) {
+message.textContent = "Please fill in all fields.";
+return;
+}
+
+try {
+const result = await createUserWithEmailAndPassword(
+auth, email, password
+);
+await updateProfile(result.user, {displayName:name});
+message.textContent = "Account created successfully!";
+} catch(error) {
+message.textContent = error.message;
+}
+};
+
+window.login = async function() {
+const email = document.getElementById("email").value.trim();
+const password = document.getElementById("password").value;
+
+try {
+await signInWithEmailAndPassword(auth,email,password);
+message.textContent = "Login successful!";
+} catch(error) {
+message.textContent = error.message;
+}
+};
+
+window.logout = async function() {
+await signOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
+if(user) {
+document.getElementById("auth").style.display = "none";
+document.getElementById("dashboard").style.display = "block";
+document.getElementById("userEmail").textContent =
+user.displayName + " (" + user.email + ")";
+} else {
+document.getElementById("auth").style.display = "block";
+document.getElementById("dashboard").style.display = "none";
+}
+});
+</script>
 </body>
 </html>
