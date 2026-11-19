@@ -218,7 +218,54 @@ date.textContent = post.createdAt
 : "Just now";
 
 article.append(author,content,date);
-feed.appendChild(article);
+  
+const likeButton = document.createElement("button");
+likeButton.textContent = "❤️ Like";
+likeButton.style.width = "auto";
+likeButton.style.padding = "8px 18px";
+
+const likeRef = firestoreDoc(
+  db, "posts", doc.id, "likes", user.uid
+);
+
+likeButton.disabled = true;
+
+getDoc(likeRef).then(likeSnap => {
+  likeButton.textContent = likeSnap.exists()
+    ? "❤️ Liked"
+    : "❤️ Like";
+  likeButton.disabled = false;
+}).catch(error => {
+  console.error(error);
+  likeButton.textContent = "Like unavailable";
+});
+
+likeButton.addEventListener("click", async () => {
+  likeButton.disabled = true;
+
+  try {
+    const likeSnap = await getDoc(likeRef);
+
+    if (likeSnap.exists()) {
+      await deleteDoc(likeRef);
+      likeButton.textContent = "❤️ Like";
+    } else {
+      await setDoc(likeRef, {
+        uid: user.uid,
+        createdAt: serverTimestamp()
+      });
+      likeButton.textContent = "❤️ Liked";
+    }
+  } catch (error) {
+    alert("Like error: " + error.message);
+  } finally {
+    likeButton.disabled = false;
+  }
+});
+
+article.appendChild(likeButton);
+  
+feed.appendChild(article)
 });
 }, error => {
 el("feed").textContent = "Could not load posts: " + error.message;
