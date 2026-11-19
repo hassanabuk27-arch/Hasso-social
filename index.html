@@ -216,6 +216,64 @@ likeButton.disabled=false;
 };
 
 article.append(author,content,date,likeButton);
+  
+const commentBox = document.createElement("div");
+const commentTitle = document.createElement("strong");
+commentTitle.textContent = "💬 Comments";
+
+const commentList = document.createElement("div");
+const commentInput = document.createElement("input");
+commentInput.placeholder = "Write a comment...";
+
+const commentButton = document.createElement("button");
+commentButton.textContent = "Send Comment";
+
+commentBox.append(commentTitle, commentList, commentInput, commentButton);
+article.appendChild(commentBox);
+
+async function loadComments() {
+  const result = await getDocs(
+    collection(db, "posts", post.id, "comments")
+  );
+
+  commentList.replaceChildren();
+
+  result.forEach(item => {
+    const data = item.data();
+    const line = document.createElement("p");
+    line.textContent = (data.userName || "User") + ": " + data.text;
+    commentList.appendChild(line);
+  });
+}
+
+loadComments();
+
+commentButton.onclick = async () => {
+  const text = commentInput.value.trim();
+  if (!text) return;
+
+  commentButton.disabled = true;
+
+  try {
+    await addDoc(
+      collection(db, "posts", post.id, "comments"),
+      {
+        uid: user.uid,
+        userName: user.displayName || user.email,
+        text: text,
+        createdAt: serverTimestamp()
+      }
+    );
+
+    commentInput.value = "";
+    await loadComments();
+  } catch (error) {
+    alert("Comment error: " + error.message);
+  } finally {
+    commentButton.disabled = false;
+  }
+};
+  
 feed.appendChild(article);
 });
 },error=>{
