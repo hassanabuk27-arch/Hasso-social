@@ -7,46 +7,69 @@
 <title>HASSO - Connect. Share. Belong.</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f0f2f5;color:#222}
-header{background:#1877f2;color:white;padding:16px;text-align:center;font-size:25px;font-weight:bold}
-main{max-width:600px;margin:20px auto;padding:12px}
-.card{background:white;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
-input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #ccc;border-radius:8px;font-size:16px}
-button{background:#1877f2;color:white;border:0;padding:12px 18px;border-radius:8px;font-size:16px;cursor:pointer;margin:5px 0}
-button:disabled{opacity:.6}
-.secondary{background:#555}
-.hidden{display:none}
-.post{border-bottom:1px solid #ddd;padding:12px 0;overflow-wrap:anywhere}
-small{color:#666}
-#message{color:#d00;margin:10px 0}
+body{margin:0;background:#f0f2f5;color:#1c1e21;font-family:Arial,sans-serif}
+header{background:#1877f2;color:white;padding:15px;text-align:center;font-size:26px;font-weight:bold;position:sticky;top:0;z-index:5}
+main{max-width:650px;margin:18px auto;padding:10px}
+.card{background:white;border-radius:13px;padding:16px;margin-bottom:15px;box-shadow:0 2px 8px #00000012}
+input,textarea{width:100%;padding:12px;border:1px solid #ccd0d5;border-radius:9px;margin:7px 0;font-size:15px}
+textarea{resize:vertical}
+button{border:0;border-radius:8px;padding:11px 15px;background:#1877f2;color:white;font-weight:bold;cursor:pointer;margin:4px 3px 4px 0}
+button:disabled{opacity:.5}
+.gray{background:#606770}
+.red{background:#d93025}
+.hidden{display:none!important}
+#message,#postMessage{color:#d93025;font-size:14px}
+.avatar{width:75px;height:75px;border-radius:50%;object-fit:cover;background:#ddd}
+.postImage{width:100%;max-height:450px;object-fit:contain;border-radius:10px;margin-top:10px;background:#eee}
+.post{border-bottom:1px solid #ddd;padding:12px 0}
+.postHead{display:flex;align-items:center;gap:10px}
+.postHead .avatar{width:42px;height:42px}
+.postText{white-space:pre-wrap;overflow-wrap:anywhere}
+.comment{background:#f0f2f5;padding:9px;border-radius:10px;margin:6px 0;font-size:14px}
+.small{font-size:12px;color:#65676b}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+label{font-size:13px;font-weight:bold}
 </style>
 </head>
 <body>
-
 <header>HASSO</header>
 
 <main>
 <section id="authSection" class="card">
 <h2>Welcome to HASSO</h2>
 <p>Connect. Share. Belong.</p>
-
+<input id="nameInput" placeholder="Your name (for new account)">
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password">
-
 <button id="loginBtn">Login</button>
-<button id="registerBtn" class="secondary">Create Account</button>
+<button id="registerBtn" class="gray">Create Account</button>
 <p id="message"></p>
 </section>
 
 <section id="appSection" class="hidden">
 <div class="card">
-<h3 id="welcome"></h3>
-<button id="logoutBtn" class="secondary">Logout</button>
+<div class="postHead">
+<img id="myAvatar" class="avatar" alt="Profile photo">
+<div>
+<strong id="myName">HASSO User</strong>
+<div class="small" id="myEmail"></div>
+</div>
+</div>
+<hr>
+<label>Change profile photo</label>
+<input id="avatarFile" type="file" accept="image/*">
+<label>Change your name</label>
+<input id="newName" placeholder="Your name">
+<button id="saveProfileBtn">Save Profile</button>
+<button id="logoutBtn" class="gray">Logout</button>
+<p id="profileMessage" class="small"></p>
 </div>
 
 <div class="card">
 <h3>Create a post</h3>
-<textarea id="postText" rows="4" placeholder="What's on your mind?"></textarea>
+<textarea id="postText" rows="3" placeholder="What's on your mind?"></textarea>
+<label>Add a photo (optional)</label>
+<input id="postFile" type="file" accept="image/*">
 <button id="postBtn">Publish Post</button>
 <p id="postMessage"></p>
 </div>
@@ -59,181 +82,266 @@ small{color:#666}
 </main>
 
 <script type="module">
-import { initializeApp } from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-getAuth,
-createUserWithEmailAndPassword,
-signInWithEmailAndPassword,
-onAuthStateChanged,
-signOut
-} from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
+ getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,
+ onAuthStateChanged,signOut,updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-getFirestore,
-collection,
-addDoc,
-query,
-orderBy,
-onSnapshot,
-serverTimestamp
-} from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+ getFirestore,collection,doc,setDoc,getDoc,addDoc,query,
+ orderBy,onSnapshot,serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+ getStorage,ref,uploadBytes,getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const firebaseConfig = {
-apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
-authDomain: "hasso-4bc9e.firebaseapp.com",
-projectId: "hasso-4bc9e",
-storageBucket: "hasso-4bc9e.firebasestorage.app",
-messagingSenderId: "150032029282",
-appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
+const firebaseConfig={
+ apiKey:"AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
+ authDomain:"hasso-4bc9e.firebaseapp.com",
+ projectId:"hasso-4bc9e",
+ storageBucket:"hasso-4bc9e.firebasestorage.app",
+ messagingSenderId:"150032029282",
+ appId:"1:150032029282:web:3d790c6d4ae68b3f50a33b"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const storage=getStorage(app);
+const $=id=>document.getElementById(id);
+let stopFeed=null;
+let currentProfile={};
 
-const el = id => document.getElementById(id);
-
-el("loginBtn").addEventListener("click", async () => {
-const email = el("email").value.trim();
-const password = el("password").value;
-
-el("message").textContent = "";
-
-if (!email || !password) {
-el("message").textContent = "Enter your email and password.";
-return;
+function say(id,text){$(id).textContent=text;}
+function safeImage(url){
+ return url || "https://www.gravatar.com/avatar/?d=mp";
+}
+async function uploadImage(file,path){
+ if(!file)return "";
+ if(!file.type.startsWith("image/"))throw new Error("Please choose an image.");
+ if(file.size>5*1024*1024)throw new Error("Image must be smaller than 5MB.");
+ const imageRef=ref(storage,path);
+ await uploadBytes(imageRef,file);
+ return await getDownloadURL(imageRef);
 }
 
-el("loginBtn").disabled = true;
+$("loginBtn").onclick=async()=>{
+ say("message","");
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||!password){say("message","Enter your email and password.");return;}
+ $("loginBtn").disabled=true;
+ try{await signInWithEmailAndPassword(auth,email,password);}
+ catch(e){say("message",e.code==="auth/invalid-credential"?"Email or password is incorrect.":e.message);}
+ finally{$("loginBtn").disabled=false;}
+};
 
-try {
-await signInWithEmailAndPassword(auth, email, password);
-} catch (error) {
-el("message").textContent = error.code === "auth/invalid-credential"
-? "Email or password is incorrect. Try again."
-: error.message;
-} finally {
-el("loginBtn").disabled = false;
-}
+$("registerBtn").onclick=async()=>{
+ say("message","");
+ const name=$("nameInput").value.trim();
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!name||!email||!password){say("message","Enter your name, email and password.");return;}
+ if(password.length<6){say("message","Password must be at least 6 characters.");return;}
+ $("registerBtn").disabled=true;
+ try{
+  const result=await createUserWithEmailAndPassword(auth,email,password);
+  await updateProfile(result.user,{displayName:name});
+  await setDoc(doc(db,"users",result.user.uid),{
+   name,email,photoURL:"",createdAt:serverTimestamp()
+  });
+ }catch(e){say("message",e.message);}
+ finally{$("registerBtn").disabled=false;}
+};
+
+$("logoutBtn").onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth,async user=>{
+ if(stopFeed){stopFeed();stopFeed=null;}
+ if(!user){
+  $("authSection").classList.remove("hidden");
+  $("appSection").classList.add("hidden");
+  return;
+ }
+ $("authSection").classList.add("hidden");
+ $("appSection").classList.remove("hidden");
+ try{
+  const userRef=doc(db,"users",user.uid);
+  const snap=await getDoc(userRef);
+  if(snap.exists())currentProfile=snap.data();
+  else{
+   currentProfile={name:user.displayName||"HASSO User",photoURL:"",email:user.email};
+   await setDoc(userRef,currentProfile);
+  }
+  showProfile(user);
+  loadFeed();
+ }catch(e){say("profileMessage","Profile error: "+e.message);}
 });
 
-el("registerBtn").addEventListener("click", async () => {
-const email = el("email").value.trim();
-const password = el("password").value;
-
-el("message").textContent = "";
-
-if (!email || !password) {
-el("message").textContent = "Enter your email and password.";
-return;
+function showProfile(user){
+ const name=currentProfile.name||user.displayName||"HASSO User";
+ $("myName").textContent=name;
+ $("myEmail").textContent=user.email||"";
+ $("newName").value=name;
+ $("myAvatar").src=safeImage(currentProfile.photoURL);
 }
 
-if (password.length < 6) {
-el("message").textContent = "Password must be at least 6 characters.";
-return;
+$("saveProfileBtn").onclick=async()=>{
+ const user=auth.currentUser;
+ if(!user)return;
+ $("saveProfileBtn").disabled=true;
+ try{
+  const name=$("newName").value.trim();
+  if(!name)throw new Error("Enter your name.");
+  let photoURL=currentProfile.photoURL||"";
+  const file=$("avatarFile").files[0];
+  if(file)photoURL=await uploadImage(file,`profiles/${user.uid}/avatar`);
+  await updateProfile(user,{displayName:name,photoURL});
+  await setDoc(doc(db,"users",user.uid),{
+   name,photoURL,email:user.email,updatedAt:serverTimestamp()
+  },{merge:true});
+  currentProfile={...currentProfile,name,photoURL};
+  showProfile(user);
+  $("avatarFile").value="";
+  say("profileMessage","Profile updated successfully!");
+ }catch(e){say("profileMessage",e.message);}
+ finally{$("saveProfileBtn").disabled=false;}
+};
+
+$("postBtn").onclick=async()=>{
+ const user=auth.currentUser;
+ const text=$("postText").value.trim();
+ const file=$("postFile").files[0];
+ if(!user)return;
+ if(!text&&!file){say("postMessage","Write something or choose a photo.");return;}
+ $("postBtn").disabled=true;
+ try{
+  let imageURL="";
+  if(file)imageURL=await uploadImage(file,`posts/${user.uid}/${Date.now()}`);
+  await addDoc(collection(db,"posts"),{
+   ownerId:user.uid,
+   authorName:currentProfile.name||user.displayName||"HASSO User",
+   authorPhoto:currentProfile.photoURL||"",
+   text,imageURL,
+   createdAt:serverTimestamp()
+  });
+  $("postText").value="";
+  $("postFile").value="";
+  say("postMessage","Your post has been published!");
+ }catch(e){say("postMessage",e.message);}
+ finally{$("postBtn").disabled=false;}
+};
+
+function loadFeed(){
+ const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
+ stopFeed=onSnapshot(q,snapshot=>{
+  const feed=$("feed");
+  feed.innerHTML="";
+  if(snapshot.empty){feed.textContent="No posts yet. Be the first to post!";return;}
+  snapshot.forEach(postDoc=>renderPost(postDoc.id,postDoc.data(),feed));
+ },error=>{$("feed").textContent="Feed error: "+error.message;});
 }
 
-el("registerBtn").disabled = true;
+async function renderPost(postId,data,feed){
+ const user=auth.currentUser;
+ const wrap=document.createElement("article");
+ wrap.className="post";
+ const head=document.createElement("div");
+ head.className="postHead";
+ const avatar=document.createElement("img");
+ avatar.className="avatar";
+ avatar.src=safeImage(data.authorPhoto);
+ const author=document.createElement("strong");
+ author.textContent=data.authorName||"HASSO User";
+ head.append(avatar,author);
+ wrap.append(head);
 
-try {
-await createUserWithEmailAndPassword(auth, email, password);
-} catch (error) {
-el("message").textContent = error.message;
-} finally {
-el("registerBtn").disabled = false;
-}
-});
+ if(data.text){
+  const p=document.createElement("p");
+  p.className="postText";
+  p.textContent=data.text;
+  wrap.append(p);
+ }
+ if(data.imageURL){
+  const img=document.createElement("img");
+  img.className="postImage";
+  img.src=data.imageURL;
+  img.alt="Post image";
+  wrap.append(img);
+ }
 
-el("logoutBtn").addEventListener("click", async () => {
-await signOut(auth);
-});
+ const actions=document.createElement("div");
+ actions.className="actions";
+ const likeBtn=document.createElement("button");
+ likeBtn.className="gray";
+ const likeCount=document.createElement("span");
+ likeCount.className="small";
+ const likesRef=collection(db,"posts",postId,"likes");
+ const myLike=doc(db,"posts",postId,"likes",user.uid);
 
-onAuthStateChanged(auth, user => {
-if (user) {
-el("authSection").classList.add("hidden");
-el("appSection").classList.remove("hidden");
-el("welcome").textContent = "Welcome, " + user.email;
-loadFeed();
-} else {
-el("authSection").classList.remove("hidden");
-el("appSection").classList.add("hidden");
-}
-});
+ async function refreshLikes(){
+  const {getDocs}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const likes=await getDocs(likesRef);
+  likeCount.textContent=likes.size+" likes";
+  likeBtn.textContent=likes.docs.some(d=>d.id===user.uid)?"Unlike":"Like";
+ }
+ likeBtn.onclick=async()=>{
+  likeBtn.disabled=true;
+  try{
+   const existing=await getDoc(myLike);
+   if(existing.exists()){
+    const {deleteDoc}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    await deleteDoc(myLike);
+   }else{
+    await setDoc(myLike,{uid:user.uid,createdAt:serverTimestamp()});
+   }
+   await refreshLikes();
+  }catch(e){alert("Like error: "+e.message);}
+  finally{likeBtn.disabled=false;}
+ };
+ actions.append(likeBtn,likeCount);
+ wrap.append(actions);
 
-el("postBtn").addEventListener("click", async () => {
-const user = auth.currentUser;
-const text = el("postText").value.trim();
-
-if (!user || !text) {
-el("postMessage").textContent = "Write something first.";
-return;
-}
-
-el("postBtn").disabled = true;
-
-try {
-await addDoc(collection(db, "posts"), {
-text: text,
-email: user.email,
-uid: user.uid,
-createdAt: serverTimestamp()
-});
-
-el("postText").value = "";
-el("postMessage").textContent = "Post published!";
-} catch (error) {
-el("postMessage").textContent = "Could not publish: " + error.message;
-} finally {
-el("postBtn").disabled = false;
-}
-});
-
-let feedStarted = false;
-
-function loadFeed() {
-if (feedStarted) return;
-feedStarted = true;
-
-const postsQuery = query(
-collection(db, "posts"),
-orderBy("createdAt", "desc")
-);
-
-onSnapshot(postsQuery, snapshot => {
-const feed = el("feed");
-feed.innerHTML = "";
-
-if (snapshot.empty) {
-feed.textContent = "No posts yet. Be the first to post!";
-return;
-}
-
-snapshot.forEach(document => {
-const data = document.data();
-
-const post = document.createElement("div");
-post.className = "post";
-
-const author = document.createElement("strong");
-author.textContent = data.email || "HASSO User";
-
-const content = document.createElement("p");
-content.textContent = data.text || "";
-
-post.appendChild(author);
-post.appendChild(content);
-feed.appendChild(post);
-});
-
-}, error => {
-el("feed").textContent = "Feed error: " + error.message;
-});
+ const commentsBox=document.createElement("div");
+ const commentsList=document.createElement("div");
+ const commentInput=document.createElement("input");
+ commentInput.placeholder="Write a comment...";
+ const commentBtn=document.createElement("button");
+ commentBtn.textContent="Comment";
+ const commentsRef=collection(db,"posts",postId,"comments");
+ const commentsQuery=query(commentsRef,orderBy("createdAt","asc"));
+ onSnapshot(commentsQuery,comments=>{
+  commentsList.innerHTML="";
+  comments.forEach(c=>{
+   const item=document.createElement("div");
+   item.className="comment";
+   const b=document.createElement("strong");
+   b.textContent=(c.data().authorName||"User")+": ";
+   const t=document.createElement("span");
+   t.textContent=c.data().text||"";
+   item.append(b,t);
+   commentsList.append(item);
+  });
+ });
+ commentBtn.onclick=async()=>{
+  const text=commentInput.value.trim();
+  if(!text)return;
+  commentBtn.disabled=true;
+  try{
+   await addDoc(commentsRef,{
+    uid:user.uid,
+    authorName:currentProfile.name||user.displayName||"HASSO User",
+    text,createdAt:serverTimestamp()
+   });
+   commentInput.value="";
+  }catch(e){alert("Comment error: "+e.message);}
+  finally{commentBtn.disabled=false;}
+ };
+ commentsBox.append(commentsList,commentInput,commentBtn);
+ wrap.append(commentsBox);
+ feed.append(wrap);
+ refreshLikes().catch(()=>{});
 }
 </script>
-
 </body>
 </html>
