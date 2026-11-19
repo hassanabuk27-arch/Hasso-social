@@ -175,7 +175,7 @@ finally{el("publish").disabled=false;}
 
 let stopFeed=null;
 
-onAuthStateChanged(auth,user=>{
+onAuthStateChanged(auth,async user=>{
 if(stopFeed){stopFeed();stopFeed=null;}
 
 if(!user){
