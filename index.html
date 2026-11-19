@@ -7,52 +7,71 @@
 <title>HASSO - Connect. Share. Belong.</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:#f0f2f5;color:#172033}
-header{background:#102b59;color:white;padding:20px;font-size:28px;font-weight:bold}
-main{max-width:430px;margin:35px auto;padding:15px}
-.card{background:white;padding:25px;border-radius:15px;box-shadow:0 3px 15px #0001}
-h1{text-align:center;color:#102b59}
-p{text-align:center;color:#64748b}
-input{width:100%;padding:14px;margin:9px 0;border:1px solid #ccd3df;border-radius:8px;font-size:16px}
-button{width:100%;padding:14px;margin-top:10px;border:0;border-radius:8px;background:#1769d2;color:white;font-size:16px;font-weight:bold}
-button.secondary{background:#102b59}
-#message{text-align:center;margin-top:15px;font-size:14px}
+body{margin:0;font-family:Arial;background:#f1f3f8;color:#222}
+header{background:#102b59;color:white;padding:20px;text-align:center}
+header h1{margin:0}
+main{max-width:600px;margin:25px auto;padding:12px}
+.card{background:white;padding:20px;border-radius:14px;margin-bottom:18px;box-shadow:0 2px 10px #ddd}
+h2{color:#102b59}
+input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #ccc;border-radius:8px;font-size:16px}
+textarea{min-height:100px;resize:vertical}
+button{width:100%;padding:14px;margin:7px 0;background:#1769d2;color:white;border:0;border-radius:8px;font-size:16px;cursor:pointer}
+.secondary{background:#102b59}
+.post{border-bottom:1px solid #ddd;padding:15px 0}
+.post strong{color:#102b59}
+.post p{white-space:pre-wrap;overflow-wrap:anywhere}
+.small{font-size:13px;color:#777}
 #dashboard{display:none}
-footer{text-align:center;padding:25px;color:#64748b}
+#message{text-align:center;color:#b00020}
+footer{text-align:center;color:#777;padding:25px}
 </style>
 </head>
 <body>
 
-<header>HASSO</header>
+<header>
+<h1>HASSO</h1>
+<p>Connect. Share. Belong.</p>
+</header>
 
 <main>
-<div class="card" id="auth">
-<h1>Welcome to HASSO</h1>
-<p>Connect. Share. Belong.</p>
+<div id="auth" class="card">
+<h2>Welcome to HASSO</h2>
+<p>Create an account or login.</p>
 
-<input id="name" type="text" placeholder="Your full name">
+<input id="name" placeholder="Your full name">
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password (at least 6 characters)">
 
-<button onclick="register()">Create Account</button>
-<button class="secondary" onclick="login()">Login</button>
-
-<div id="message"></div>
+<button id="register">Create Account</button>
+<button id="login" class="secondary">Login</button>
+<p id="message"></p>
 </div>
 
-<div class="card" id="dashboard">
-<h1>Welcome!</h1>
+<div id="dashboard">
+<div class="card">
+<h2>Welcome!</h2>
 <p id="userEmail"></p>
-<p>Your HASSO account is active.</p>
-<button onclick="logout()">Logout</button>
+<button id="logout" class="secondary">Logout</button>
+</div>
+
+<div class="card">
+<h2>Create a Post</h2>
+<textarea id="postContent" maxlength="2000" placeholder="What's on your mind?"></textarea>
+<button id="publish">Publish Post</button>
+<p id="postMessage"></p>
+</div>
+
+<div class="card">
+<h2>News Feed</h2>
+<div id="feed">Loading posts...</div>
+</div>
 </div>
 </main>
 
 <footer>© 2026 HASSO. Connect. Share. Belong.</footer>
 
 <script type="module">
-import { initializeApp } from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
 getAuth,
@@ -61,8 +80,17 @@ signInWithEmailAndPassword,
 onAuthStateChanged,
 signOut,
 updateProfile
-} from
-"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+getFirestore,
+collection,
+addDoc,
+query,
+orderBy,
+onSnapshot,
+serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
@@ -70,63 +98,138 @@ authDomain: "hasso-4bc9e.firebaseapp.com",
 projectId: "hasso-4bc9e",
 storageBucket: "hasso-4bc9e.firebasestorage.app",
 messagingSenderId: "150032029282",
-appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b",
-measurementId: "G-R9GFYDVN4Q"
+appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-const message = document.getElementById("message");
+const el = id => document.getElementById(id);
 
-window.register = async function() {
-const name = document.getElementById("name").value.trim();
-const email = document.getElementById("email").value.trim();
-const password = document.getElementById("password").value;
+el("register").addEventListener("click", async () => {
+const name = el("name").value.trim();
+const email = el("email").value.trim();
+const password = el("password").value;
 
-if(!name || !email || !password) {
-message.textContent = "Please fill in all fields.";
+if (!name || !email || password.length < 6) {
+el("message").textContent = "Enter your name, email and a password of at least 6 characters.";
 return;
 }
 
 try {
-const result = await createUserWithEmailAndPassword(
-auth, email, password
-);
-await updateProfile(result.user, {displayName:name});
-message.textContent = "Account created successfully!";
+const result = await createUserWithEmailAndPassword(auth,email,password);
+await updateProfile(result.user,{displayName:name});
+el("message").textContent = "Account created successfully!";
 } catch(error) {
-message.textContent = error.message;
+el("message").textContent = error.message;
 }
-};
+});
 
-window.login = async function() {
-const email = document.getElementById("email").value.trim();
-const password = document.getElementById("password").value;
+el("login").addEventListener("click", async () => {
+try {
+await signInWithEmailAndPassword(
+auth,
+el("email").value.trim(),
+el("password").value
+);
+el("message").textContent = "";
+} catch(error) {
+el("message").textContent = error.message;
+}
+});
+
+el("logout").addEventListener("click", async () => {
+await signOut(auth);
+});
+
+el("publish").addEventListener("click", async () => {
+const user = auth.currentUser;
+const content = el("postContent").value.trim();
+
+if (!user || !content) {
+el("postMessage").textContent = "Write something first.";
+return;
+}
+
+el("publish").disabled = true;
 
 try {
-await signInWithEmailAndPassword(auth,email,password);
-message.textContent = "Login successful!";
-} catch(error) {
-message.textContent = error.message;
-}
-};
+await addDoc(collection(db,"posts"),{
+content: content,
+userName: user.displayName || user.email,
+uid: user.uid,
+createdAt: serverTimestamp()
+});
 
-window.logout = async function() {
-await signOut(auth);
-};
+el("postContent").value = "";
+el("postMessage").textContent = "Post published!";
+} catch(error) {
+el("postMessage").textContent = error.message;
+} finally {
+el("publish").disabled = false;
+}
+});
+
+let stopFeed = null;
 
 onAuthStateChanged(auth, user => {
-if(user) {
-document.getElementById("auth").style.display = "none";
-document.getElementById("dashboard").style.display = "block";
-document.getElementById("userEmail").textContent =
-user.displayName + " (" + user.email + ")";
+if (stopFeed) {
+stopFeed();
+stopFeed = null;
+}
+
+if (user) {
+el("auth").style.display = "none";
+el("dashboard").style.display = "block";
+el("userEmail").textContent =
+user.displayName || user.email;
+
+const postsQuery = query(
+collection(db,"posts"),
+orderBy("createdAt","desc")
+);
+
+stopFeed = onSnapshot(postsQuery, snapshot => {
+const feed = el("feed");
+feed.replaceChildren();
+
+if (snapshot.empty) {
+feed.textContent = "No posts yet. Be the first to post!";
+return;
+}
+
+snapshot.forEach(doc => {
+const post = doc.data();
+
+const article = document.createElement("div");
+article.className = "post";
+
+const author = document.createElement("strong");
+author.textContent = post.userName || "HASSO User";
+
+const content = document.createElement("p");
+content.textContent = post.content || "";
+
+const date = document.createElement("div");
+date.className = "small";
+date.textContent = post.createdAt
+? post.createdAt.toDate().toLocaleString()
+: "Just now";
+
+article.append(author,content,date);
+feed.appendChild(article);
+});
+}, error => {
+el("feed").textContent = "Could not load posts: " + error.message;
+});
+
 } else {
-document.getElementById("auth").style.display = "block";
-document.getElementById("dashboard").style.display = "none";
+el("auth").style.display = "block";
+el("dashboard").style.display = "none";
 }
 });
 </script>
+
 </body>
 </html>
