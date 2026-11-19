@@ -209,6 +209,21 @@ if (profileSnap.exists()) {
 }
 stopFeed=onSnapshot(collection(db,"posts"),snapshot=>{
 const feed=el("feed");
+  <div style="display:flex;align-items:center;gap:10px;">
+  <div style="
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:#102b59;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;">
+    ${(post.userName || "H").trim().charAt(0).toUpperCase()}
+  </div>
+  <strong>${post.userName || "HASSO User"}</strong>
+</div>
 feed.replaceChildren();
 
 const posts=snapshot.docs.map(d=>({id:d.id,...d.data()}));
