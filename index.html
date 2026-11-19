@@ -1,107 +1,86 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ha">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HASSO - Connect. Share. Belong.</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f1f3f8;font-family:Arial;color:#222}
-header{background:#102b59;color:white;text-align:center;padding:20px}
+body{margin:0;font-family:Arial,sans-serif;background:#f0f2f5;color:#222}
+header{background:#1877f2;color:white;padding:16px;text-align:center;font-size:25px;font-weight:bold}
 main{max-width:600px;margin:20px auto;padding:12px}
-.card{background:white;padding:18px;border-radius:12px;margin-bottom:18px}
+.card{background:white;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
 input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #ccc;border-radius:8px;font-size:16px}
-textarea{min-height:100px}
-button{padding:12px;background:#1769d2;color:white;border:0;border-radius:8px;cursor:pointer;margin:5px 0}
-.full{width:100%}
-.post{padding:15px 0;border-bottom:1px solid #ddd}
-.post p{white-space:pre-wrap;overflow-wrap:anywhere}
-.small{font-size:12px;color:#777}
-#dashboard{display:none}
-#message,#postMessage{color:#b00020}
+button{background:#1877f2;color:white;border:0;padding:12px 18px;border-radius:8px;font-size:16px;cursor:pointer;margin:5px 0}
+button:disabled{opacity:.6}
+.secondary{background:#555}
+.hidden{display:none}
+.post{border-bottom:1px solid #ddd;padding:12px 0;overflow-wrap:anywhere}
+small{color:#666}
+#message{color:#d00;margin:10px 0}
 </style>
 </head>
 <body>
 
-<header>
-<h1>HASSO</h1>
-<p>Connect. Share. Belong.</p>
-</header>
+<header>HASSO</header>
 
 <main>
-<div id="auth" class="card">
+<section id="authSection" class="card">
 <h2>Welcome to HASSO</h2>
-<input id="name" placeholder="Full name">
-<input id="email" type="email" placeholder="Email">
+<p>Connect. Share. Belong.</p>
+
+<input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password">
-<button class="full" id="register">Create Account</button>
-<button class="full" id="login">Login</button>
+
+<button id="loginBtn">Login</button>
+<button id="registerBtn" class="secondary">Create Account</button>
 <p id="message"></p>
-</div>
+</section>
 
-<div id="dashboard">
-  
+<section id="appSection" class="hidden">
 <div class="card">
-<h2>👤 My Profile</h2>
-  <div id="profileAvatar" style="
-width:100px;
-height:100px;
-border-radius:50%;
-background:#102b59;
-color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:40px;
-font-weight:bold;
-margin:15px auto;">
-H
-  </div>
-<input id="profileName" placeholder="Your display name">
-<textarea id="profileBio" maxlength="300" placeholder="Write something about yourself"></textarea>
-<button class="full" id="saveProfile">Save Profile</button>
-<p id="profileMessage"></p>
-</div>
-  
-<div class="card">
-<h2>Welcome to HASSO!</h2>
-<p id="userEmail"></p>
-<button id="logout">Logout</button>
+<h3 id="welcome"></h3>
+<button id="logoutBtn" class="secondary">Logout</button>
 </div>
 
 <div class="card">
-<h2>Create a Post</h2>
-<textarea id="postContent" maxlength="2000" placeholder="What's on your mind?"></textarea>
-<button class="full" id="publish">Publish Post</button>
+<h3>Create a post</h3>
+<textarea id="postText" rows="4" placeholder="What's on your mind?"></textarea>
+<button id="postBtn">Publish Post</button>
 <p id="postMessage"></p>
 </div>
 
 <div class="card">
-<h2>News Feed</h2>
+<h3>News Feed</h3>
 <div id="feed">Loading posts...</div>
 </div>
-</div>
+</section>
 </main>
 
-<footer style="text-align:center;padding:20px;color:#777">
-© 2026 HASSO
-</footer>
-
 <script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-getAuth,createUserWithEmailAndPassword,
-signInWithEmailAndPassword,onAuthStateChanged,
-signOut,updateProfile
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+getAuth,
+createUserWithEmailAndPassword,
+signInWithEmailAndPassword,
+onAuthStateChanged,
+signOut
+} from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-getFirestore,collection,addDoc,
-onSnapshot,serverTimestamp,doc,
-getDoc,getDocs,setDoc,deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+getFirestore,
+collection,
+addDoc,
+query,
+orderBy,
+onSnapshot,
+serverTimestamp
+} from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
@@ -112,233 +91,149 @@ messagingSenderId: "150032029282",
 appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
 };
 
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-const el=id=>document.getElementById(id);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-el("saveProfile").onclick = async () => {
-  const user = auth.currentUser;
-  if (!user) return;
+const el = id => document.getElementById(id);
 
-  const displayName = el("profileName").value.trim();
-  const bio = el("profileBio").value.trim();
+el("loginBtn").addEventListener("click", async () => {
+const email = el("email").value.trim();
+const password = el("password").value;
 
-  if (!displayName) {
-    el("profileMessage").textContent = "Enter your name.";
-    return;
-  }
+el("message").textContent = "";
 
-  try {
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      displayName: displayName,
-      bio: bio
-    }, { merge: true });
-
-    await updateProfile(user, {
-      displayName: displayName
-    });
-
-    el("profileMessage").textContent = "Profile saved successfully!";
-  } catch (error) {
-    el("profileMessage").textContent = error.message;
-  }
-};
-  
-el("register").onclick=async()=>{
-try{
-const name=el("name").value.trim();
-const email=el("email").value.trim();
-const password=el("password").value;
-if(!name||!email||password.length<6){
-el("message").textContent="Enter your name, email and password (at least 6 characters).";
-return;
-}
-const result=await createUserWithEmailAndPassword(auth,email,password);
-await updateProfile(result.user,{displayName:name});
-}catch(e){el("message").textContent=e.message;}
-};
-
-el("login").onclick=async()=>{
-try{
-await signInWithEmailAndPassword(auth,
-el("email").value.trim(),el("password").value);
-}catch(e){el("message").textContent=e.message;}
-};
-
-el("logout").onclick=()=>signOut(auth);
-
-el("publish").onclick=async()=>{
-const user=auth.currentUser;
-const content=el("postContent").value.trim();
-if(!content)return;
-el("publish").disabled=true;
-try{
-await addDoc(collection(db,"posts"),{
-content,
-userName:user.displayName||user.email,
-uid:user.uid,
-createdAt:serverTimestamp()
-});
-el("postContent").value="";
-el("postMessage").textContent="Post published!";
-}catch(e){el("postMessage").textContent=e.message;}
-finally{el("publish").disabled=false;}
-};
-
-let stopFeed=null;
-
-onAuthStateChanged(auth,async user=>{
-if(stopFeed){stopFeed();stopFeed=null;}
-
-if(!user){
-el("auth").style.display="block";
-el("dashboard").style.display="none";
+if (!email || !password) {
+el("message").textContent = "Enter your email and password.";
 return;
 }
 
-el("auth").style.display="none";
-el("dashboard").style.display="block";
-el("userEmail").textContent=user.displayName||user.email;
-const profileSnap = await getDoc(doc(db, "users", user.uid));
+el("loginBtn").disabled = true;
 
-if (profileSnap.exists()) {
-  el("profileName").value = profileSnap.data().displayName || "";
-  el("profileBio").value = profileSnap.data().bio || "";
+try {
+await signInWithEmailAndPassword(auth, email, password);
+} catch (error) {
+el("message").textContent = error.code === "auth/invalid-credential"
+? "Email or password is incorrect. Try again."
+: error.message;
+} finally {
+el("loginBtn").disabled = false;
 }
-stopFeed=onSnapshot(collection(db,"posts"),snapshot=>{
-const feed=el("feed");
-  < style="display:flex;align-items:center;gap:10px;">
-                    
-feed.replaceChildren();
-
-const posts=snapshot.docs.map(d=>({id:d.id,...d.data()}));
-posts.sort((a,b)=>{
-const ta=a.createdAt?.toMillis?.()||0;
-const tb=b.createdAt?.toMillis?.()||0;
-return tb-ta;
 });
 
-if(posts.length===0){
-feed.textContent="No posts yet. Be the first to post!";
+el("registerBtn").addEventListener("click", async () => {
+const email = el("email").value.trim();
+const password = el("password").value;
+
+el("message").textContent = "";
+
+if (!email || !password) {
+el("message").textContent = "Enter your email and password.";
 return;
 }
 
-posts.forEach(post=>{
-const article=document.createElement("div");
-article.className="post";
-
-const author=document.createElement("strong");
-author.textContent=post.userName||"HASSO User";
-
-const content=document.createElement("p");
-content.textContent=post.content||"";
-
-const date=document.createElement("div");
-date.className="small";
-date.textContent=post.createdAt?.toDate
-?post.createdAt.toDate().toLocaleString()
-:"Post";
-
-const likeButton=document.createElement("button");
-const likeRef=doc(db,"posts",post.id,"likes",user.uid);
-likeButton.textContent="❤️ Like";
-likeButton.disabled=true;
-
-getDoc(likeRef).then(s=>{
-likeButton.textContent=s.exists()?"❤️ Liked":"❤️ Like";
-likeButton.disabled=false;
-}).catch(()=>{
-likeButton.textContent="Like unavailable";
-});
-
-likeButton.onclick=async()=>{
-likeButton.disabled=true;
-try{
-const s=await getDoc(likeRef);
-if(s.exists()){
-await deleteDoc(likeRef);
-likeButton.textContent="❤️ Like";
-}else{
-await setDoc(likeRef,{
-uid:user.uid,
-createdAt:serverTimestamp()
-});
-likeButton.textContent="❤️ Liked";
-}
-}catch(e){
-alert("Like error: "+e.message);
-}finally{
-likeButton.disabled=false;
-}
-};
-
-article.append(author,content,date,likeButton);
-  
-const commentBox = document.createElement("div");
-const commentTitle = document.createElement("strong");
-commentTitle.textContent = "💬 Comments";
-
-const commentList = document.createElement("div");
-const commentInput = document.createElement("input");
-commentInput.placeholder = "Write a comment...";
-
-const commentButton = document.createElement("button");
-commentButton.textContent = "Send Comment";
-
-commentBox.append(commentTitle, commentList, commentInput, commentButton);
-article.appendChild(commentBox);
-
-async function loadComments() {
-  const result = await getDocs(
-    collection(db, "posts", post.id, "comments")
-  );
-
-  commentList.replaceChildren();
-
-  result.forEach(item => {
-    const data = item.data();
-    const line = document.createElement("p");
-    line.textContent = (data.userName || "User") + ": " + data.text;
-    commentList.appendChild(line);
-  });
+if (password.length < 6) {
+el("message").textContent = "Password must be at least 6 characters.";
+return;
 }
 
-loadComments();
+el("registerBtn").disabled = true;
 
-commentButton.onclick = async () => {
-  const text = commentInput.value.trim();
-  if (!text) return;
-
-  commentButton.disabled = true;
-
-  try {
-    await addDoc(
-      collection(db, "posts", post.id, "comments"),
-      {
-        uid: user.uid,
-        userName: user.displayName || user.email,
-        text: text,
-        createdAt: serverTimestamp()
-      }
-    );
-
-    commentInput.value = "";
-    await loadComments();
-  } catch (error) {
-    alert("Comment error: " + error.message);
-  } finally {
-    commentButton.disabled = false;
-  }
-};
-  
-feed.appendChild(article);
+try {
+await createUserWithEmailAndPassword(auth, email, password);
+} catch (error) {
+el("message").textContent = error.message;
+} finally {
+el("registerBtn").disabled = false;
+}
 });
-},error=>{
-el("feed").textContent="Error loading posts: "+error.message;
+
+el("logoutBtn").addEventListener("click", async () => {
+await signOut(auth);
 });
+
+onAuthStateChanged(auth, user => {
+if (user) {
+el("authSection").classList.add("hidden");
+el("appSection").classList.remove("hidden");
+el("welcome").textContent = "Welcome, " + user.email;
+loadFeed();
+} else {
+el("authSection").classList.remove("hidden");
+el("appSection").classList.add("hidden");
+}
 });
+
+el("postBtn").addEventListener("click", async () => {
+const user = auth.currentUser;
+const text = el("postText").value.trim();
+
+if (!user || !text) {
+el("postMessage").textContent = "Write something first.";
+return;
+}
+
+el("postBtn").disabled = true;
+
+try {
+await addDoc(collection(db, "posts"), {
+text: text,
+email: user.email,
+uid: user.uid,
+createdAt: serverTimestamp()
+});
+
+el("postText").value = "";
+el("postMessage").textContent = "Post published!";
+} catch (error) {
+el("postMessage").textContent = "Could not publish: " + error.message;
+} finally {
+el("postBtn").disabled = false;
+}
+});
+
+let feedStarted = false;
+
+function loadFeed() {
+if (feedStarted) return;
+feedStarted = true;
+
+const postsQuery = query(
+collection(db, "posts"),
+orderBy("createdAt", "desc")
+);
+
+onSnapshot(postsQuery, snapshot => {
+const feed = el("feed");
+feed.innerHTML = "";
+
+if (snapshot.empty) {
+feed.textContent = "No posts yet. Be the first to post!";
+return;
+}
+
+snapshot.forEach(document => {
+const data = document.data();
+
+const post = document.createElement("div");
+post.className = "post";
+
+const author = document.createElement("strong");
+author.textContent = data.email || "HASSO User";
+
+const content = document.createElement("p");
+content.textContent = data.text || "";
+
+post.appendChild(author);
+post.appendChild(content);
+feed.appendChild(post);
+});
+
+}, error => {
+el("feed").textContent = "Feed error: " + error.message;
+});
+}
 </script>
+
 </body>
 </html>
