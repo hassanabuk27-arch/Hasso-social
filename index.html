@@ -41,6 +41,15 @@ button{padding:12px;background:#1769d2;color:white;border:0;border-radius:8px;cu
 </div>
 
 <div id="dashboard">
+  
+<div class="card">
+<h2>👤 My Profile</h2>
+<input id="profileName" placeholder="Your display name">
+<textarea id="profileBio" maxlength="300" placeholder="Write something about yourself"></textarea>
+<button class="full" id="saveProfile">Save Profile</button>
+<p id="profileMessage"></p>
+</div>
+  
 <div class="card">
 <h2>Welcome to HASSO!</h2>
 <p id="userEmail"></p>
@@ -94,6 +103,35 @@ const auth=getAuth(app);
 const db=getFirestore(app);
 const el=id=>document.getElementById(id);
 
+el("saveProfile").onclick = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const displayName = el("profileName").value.trim();
+  const bio = el("profileBio").value.trim();
+
+  if (!displayName) {
+    el("profileMessage").textContent = "Enter your name.";
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      displayName: displayName,
+      bio: bio
+    }, { merge: true });
+
+    await updateProfile(user, {
+      displayName: displayName
+    });
+
+    el("profileMessage").textContent = "Profile saved successfully!";
+  } catch (error) {
+    el("profileMessage").textContent = error.message;
+  }
+};
+  
 el("register").onclick=async()=>{
 try{
 const name=el("name").value.trim();
@@ -149,7 +187,12 @@ return;
 el("auth").style.display="none";
 el("dashboard").style.display="block";
 el("userEmail").textContent=user.displayName||user.email;
+const profileSnap = await getDoc(doc(db, "users", user.uid));
 
+if (profileSnap.exists()) {
+  el("profileName").value = profileSnap.data().displayName || "";
+  el("profileBio").value = profileSnap.data().bio || "";
+}
 stopFeed=onSnapshot(collection(db,"posts"),snapshot=>{
 const feed=el("feed");
 feed.replaceChildren();
