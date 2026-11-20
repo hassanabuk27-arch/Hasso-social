@@ -1,1 +1,10 @@
-
+{
+  "name": "HASSO Social Network",
+  "short_name": "HASSO",
+  "description": "Connect with people on HASSO",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1877f2"
+}
