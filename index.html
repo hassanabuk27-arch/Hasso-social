@@ -402,6 +402,8 @@ onAuthStateChanged(auth, async user => {
       "https://placehold.co/100x100";
 
     showTab("profile");
+    $("mainNav").classList.remove("hidden");
+checkAdmin();
   } else {
     $("authSection").classList.remove("hidden");
     $("appSection").classList.add("hidden");
