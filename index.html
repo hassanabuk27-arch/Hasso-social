@@ -250,10 +250,13 @@ function watchMyStats(uid){
  });
 }
 
+       uid:myUid,createdAt:serverTimestamp()
+      })
 function loadPeople(myUid){
- stopPeople=onSnapshot(collection(db,"users"),async snapshot=>{
+ stopPeople=onSnapshot(collection(db,"users"),snapshot=>{
   const box=$("peopleList");
   box.innerHTML="";
+
   const users=snapshot.docs.filter(d=>d.id!==myUid);
 
   if(!users.length){
@@ -261,7 +264,7 @@ function loadPeople(myUid){
    return;
   }
 
-  for(const person of users){
+  users.forEach(person=>{
    const data=person.data();
    const row=document.createElement("div");
    row.className="userRow";
@@ -272,55 +275,81 @@ function loadPeople(myUid){
 
    const info=document.createElement("div");
    info.className="userInfo";
+
    const name=document.createElement("strong");
    name.textContent=data.name||"HASSO User";
+   name.style.cursor="pointer";
+
    const email=document.createElement("div");
    email.className="small";
    email.textContent=data.email||"";
+
+   name.onclick=()=>{
+    alert(
+     "HASSO PROFILE\n\n"+
+     "Name: "+(data.name||"HASSO User")+
+     "\nEmail: "+(data.email||"Not available")
+    );
+   };
+
    info.append(name,email);
 
    const button=document.createElement("button");
    button.textContent="Loading...";
    button.disabled=true;
 
+   const followingRef=doc(
+    db,"users",myUid,"following",person.id
+   );
+
+   const followerRef=doc(
+    db,"users",person.id,"followers",myUid
+   );
+
    row.append(avatar,info,button);
    box.append(row);
 
-   const followingRef=doc(db,"users",myUid,"following",person.id);
-   const followingSnap=await getDoc(followingRef);
-
-   button.disabled=false;
-   button.textContent=followingSnap.exists()?"Following":"Follow";
-   if(followingSnap.exists())button.className="gray";
+   onSnapshot(followingRef,s=>{
+    button.disabled=false;
+    button.textContent=s.exists()?"Following":"Follow";
+    button.className=s.exists()?"gray":"";
+   },error=>{
+    button.textContent="Retry later";
+    console.error(error);
+   });
 
    button.onclick=async()=>{
     button.disabled=true;
+
     try{
      const current=await getDoc(followingRef);
-     const followerRef=doc(db,"users",person.id,"followers",myUid);
 
      if(current.exists()){
       await deleteDoc(followingRef);
       await deleteDoc(followerRef);
-      button.textContent="Follow";
-      button.className="";
      }else{
       await setDoc(followingRef,{
-       uid:person.id,createdAt:serverTimestamp()
+       uid:person.id,
+       createdAt:serverTimestamp()
       });
+
       await setDoc(followerRef,{
-       uid:myUid,createdAt:serverTimestamp()
+       uid:myUid,
+       createdAt:serverTimestamp()
       });
-      button.textContent="Following";
-      button.className="gray";
      }
     }catch(e){
      alert("Follow error: "+e.message);
-    }finally{button.disabled=false;}
+    }finally{
+     button.disabled=false;
+    }
    };
-  }
- },error=>{$("peopleList").textContent="People error: "+error.message;});
-}
+  });
+ },error=>{
+  $("peopleList").textContent="People error: "+error.message;
+ });
+                }
+ 
 
 $("postBtn").onclick=async()=>{
  const user=auth.currentUser;
