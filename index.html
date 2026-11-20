@@ -671,7 +671,325 @@ $("searchBtn").onclick = async () => {
   }
 };
 
-// CHAT FUNCTION WILL BE ADDED IN PART 3
+
+ // ===============================
+ // PART 3: PRIVATE MESSAGING
+ // ===============================
+
+let activeChat = null;
+let stopChatMessages = null;
+let stopChatList = null;
+
+async function openChat(uid, name) {
+  if (!currentUser || uid === currentUser.uid) return;
+
+  const participants = [currentUser.uid, uid].sort();
+  activeChat = participants.join("_");
+
+  try {
+    await setDoc(doc(db, "chats", activeChat), {
+      participants,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    $("chat").classList.remove("hidden");
+    $("chatArea").innerHTML = `
+      <h3>Chat with ${safe(name)}</h3>
+      <div id="chatMessages" style="max-height:300px;overflow:auto"></div>
+      <textarea id="messageText" placeholder="Write a message..."></textarea>
+      <button id="sendMessage">Send Message</button>
+    `;
+
+    if (stopChatMessages) stopChatMessages();
+
+    const messagesQuery = query(
+      collection(db, "chats", activeChat, "messages"),
+      orderBy("createdAt", "asc"),
+      limit(100)
+    );
+
+    stopChatMessages = onSnapshot(messagesQuery, snapshot => {
+      const box = $("chatMessages");
+      box.innerHTML = "";
+
+      snapshot.forEach(messageDoc => {
+        const message = messageDoc.data();
+        const p = document.createElement("p");
+        p.textContent =
+          (message.senderUid === currentUser.uid ? "You: " : name + ": ") +
+          (message.text || "");
+        box.appendChild(p);
+      });
+
+      box.scrollTop = box.scrollHeight;
+    }, error => {
+      $("chatMessages").textContent = error.message;
+    });
+
+    $("sendMessage").onclick = async () => {
+      const text = $("messageText").value.trim();
+      if (!text) return;
+
+      try {
+        await addDoc(
+          collection(db, "chats", activeChat, "messages"),
+          {
+            senderUid: currentUser.uid,
+            text,
+            createdAt: serverTimestamp()
+          }
+        );
+
+        await updateDoc(doc(db, "chats", activeChat), {
+          updatedAt: serverTimestamp()
+        });
+
+        $("messageText").value = "";
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+// LOAD CHAT LIST
+function loadChats() {
+  if (stopChatList) stopChatList();
+
+  const q = query(
+    collection(db, "chats"),
+    where("participants", "array-contains", currentUser.uid),
+    limit(50)
+  );
+
+  stopChatList = onSnapshot(q, async snapshot => {
+    const box = $("chatList");
+    box.innerHTML = "";
+
+    for (const chatDoc of snapshot.docs) {
+      const data = chatDoc.data();
+      const otherUid = data.participants.find(
+        uid => uid !== currentUser.uid
+      );
+
+      if (!otherUid) continue;
+
+      const userSnap = await getDoc(doc(db, "users", otherUid));
+      if (!userSnap.exists()) continue;
+
+      const person = userSnap.data();
+      const button = document.createElement("button");
+      button.textContent = "Chat with " + person.name;
+      button.onclick = () => openChat(otherUid, person.name);
+      box.appendChild(button);
+    }
+
+    if (snapshot.empty) {
+      box.textContent = "No conversations yet.";
+    }
+  }, error => {
+    box.textContent = error.message;
+  });
+}
+
+// MESSAGES TAB
+document.querySelector('[data-tab="messages"]').onclick = () => {
+  document.querySelectorAll(".tab").forEach(tab =>
+    tab.classList.add("hidden")
+  );
+  $("profileView").style.display = "none";
+  $("messages").classList.remove("hidden");
+  loadChats();
+};
+
+// ===============================
+// ADMIN DASHBOARD
+// ===============================
+
+async function isAdmin() {
+  if (!currentUser) return false;
+
+  if (currentUser.uid === ADMIN_UID) return true;
+
+  const adminSnap = await getDoc(
+    doc(db, "admins", currentUser.uid)
+  );
+
+  return adminSnap.exists() &&
+    adminSnap.data().role === "admin";
+}
+
+async function loadAdminDashboard() {
+  if (!await isAdmin()) {
+    $("adminContent").textContent = "Admin access only.";
+    return;
+  }
+
+  $("adminContent").innerHTML = `
+    <h3>Users</h3>
+    <div id="adminUsers">Loading...</div>
+    <hr>
+    <h3>Verification Requests</h3>
+    <div id="adminVerifications">Loading...</div>
+    <hr>
+    <h3>Reports</h3>
+    <div id="adminReports">Loading...</div>
+  `;
+
+  try {
+    // USERS
+    const users = await getDocs(
+      query(collection(db, "users"), limit(100))
+    );
+
+    $("adminUsers").innerHTML = "";
+
+    users.forEach(userDoc => {
+      const user = userDoc.data();
+      const row = document.createElement("p");
+      row.textContent =
+        (user.name || "Unknown") +
+        (user.verified ? " ✓ Verified" : "");
+      $("adminUsers").appendChild(row);
+    });
+
+    // VERIFICATION REQUESTS
+    const requests = await getDocs(
+      query(
+        collection(db, "verificationRequests"),
+        where("status", "==", "pending"),
+        limit(50)
+      )
+    );
+
+    $("adminVerifications").innerHTML = "";
+
+    requests.forEach(requestDoc => {
+      const request = requestDoc.data();
+      const row = document.createElement("div");
+      row.className = "post";
+
+      const text = document.createElement("p");
+      text.textContent = "User UID: " + request.uid;
+
+      const approve = document.createElement("button");
+      approve.textContent = "Approve Verification";
+
+      approve.onclick = async () => {
+        if (!await isAdmin()) return alert("Admin only.");
+
+        try {
+          await updateDoc(doc(db, "users", request.uid), {
+            verified: true
+          });
+
+          await updateDoc(
+            doc(db, "verificationRequests", requestDoc.id),
+            { status: "approved" }
+          );
+
+          alert("Verification approved.");
+          loadAdminDashboard();
+        } catch (error) {
+          alert(error.message);
+        }
+      };
+
+      const reject = document.createElement("button");
+      reject.textContent = "Reject Request";
+      reject.className = "danger";
+
+      reject.onclick = async () => {
+        if (!await isAdmin()) return alert("Admin only.");
+
+        try {
+          await updateDoc(
+            doc(db, "verificationRequests", requestDoc.id),
+            { status: "rejected" }
+          );
+
+          alert("Request rejected.");
+          loadAdminDashboard();
+        } catch (error) {
+          alert(error.message);
+        }
+      };
+
+      row.append(text, approve, reject);
+      $("adminVerifications").appendChild(row);
+    });
+
+    if (requests.empty) {
+      $("adminVerifications").textContent =
+        "No pending verification requests.";
+    }
+
+    // REPORTS
+    const reports = await getDocs(
+      query(
+        collection(db, "reports"),
+        where("status", "==", "pending"),
+        limit(50)
+      )
+    );
+
+    $("adminReports").innerHTML = "";
+
+    reports.forEach(reportDoc => {
+      const report = reportDoc.data();
+      const row = document.createElement("div");
+      row.className = "post";
+
+      const details = document.createElement("p");
+      details.textContent =
+        "Reported UID: " + report.reportedUid +
+        " | Reason: " + report.reason;
+
+      const resolve = document.createElement("button");
+      resolve.textContent = "Mark as Reviewed";
+
+      resolve.onclick = async () => {
+        if (!await isAdmin()) return alert("Admin only.");
+
+        try {
+          await updateDoc(
+            doc(db, "reports", reportDoc.id),
+            { status: "reviewed" }
+          );
+
+          alert("Report reviewed.");
+          loadAdminDashboard();
+        } catch (error) {
+          alert(error.message);
+        }
+      };
+
+      row.append(details, resolve);
+      $("adminReports").appendChild(row);
+    });
+
+    if (reports.empty) {
+      $("adminReports").textContent = "No pending reports.";
+    }
+
+  } catch (error) {
+    $("adminContent").textContent = error.message;
+  }
+}
+
+// ADMIN TAB
+document.querySelector('[data-tab="admin"]').onclick = () => {
+  document.querySelectorAll(".tab").forEach(tab =>
+    tab.classList.add("hidden")
+  );
+
+  $("profileView").style.display = "none";
+  $("admin").classList.remove("hidden");
+  loadAdminDashboard();
+};
+
 
 // ADMIN CHECK
 async function checkAdmin() {
