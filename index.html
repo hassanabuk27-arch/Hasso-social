@@ -551,4 +551,81 @@ function loadFeed() {
     box.textContent = error.message;
   });
   }
-  
+  // PUBLISH STORY
+$("publishStory").onclick = async () => {
+  const text = $("storyText").value.trim();
+  const imageURL = validUrl($("storyImage").value.trim());
+
+  if (!text && !imageURL) {
+    return notify("Write something before sharing.");
+  }
+
+  try {
+    await addDoc(collection(db, "stories"), {
+      uid: currentUser.uid,
+      name: currentProfile.name,
+      text,
+      imageURL,
+      createdAt: serverTimestamp()
+    });
+
+    $("storyText").value = "";
+    $("storyImage").value = "";
+
+    notify("Story shared successfully!");
+  } catch (error) {
+    notify(error.message);
+  }
+};
+
+// LOAD STORIES
+function loadStories() {
+  if (stopStories) stopStories();
+
+  const box = $("storyList");
+  box.textContent = "Loading stories...";
+
+  const q = query(
+    collection(db, "stories"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  stopStories = onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(storyDoc => {
+      const story = storyDoc.data();
+
+      const item = document.createElement("div");
+      item.className = "story-card";
+
+      const name = document.createElement("b");
+      name.textContent = story.name || "HASSO User";
+
+      const content = document.createElement("p");
+      content.textContent = story.text || "";
+
+      item.append(name, content);
+
+      const imageURL = validUrl(story.imageURL);
+
+      if (imageURL) {
+        const img = document.createElement("img");
+        img.src = imageURL;
+        img.alt = "Story image";
+        img.style.width = "100%";
+        img.style.marginTop = "8px";
+        item.appendChild(img);
+      }
+
+      box.appendChild(item);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No stories yet.";
+    }
+  }, error => {
+    box.textContent = error.message;
+  });
+}
