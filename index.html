@@ -891,6 +891,36 @@ async function checkAdmin() {
 // START ADMIN CHECK AFTER LOGIN
 const previousAuthCheck = onAuthStateChanged;
   
+// NAVIGATION BUTTONS
+document.querySelectorAll("#mainNav button[data-tab]").forEach(button => {
+  button.addEventListener("click", async () => {
+    const tabId = button.dataset.tab;
+
+    if (tabId === "admin") {
+      const adminSnap = await getDoc(
+        doc(db, "admins", currentUser.uid)
+      );
+
+      if (!adminSnap.exists() ||
+          adminSnap.data().role !== "admin") {
+        return showMessage("Admin access only.");
+      }
+    }
+
+    showTab(tabId);
+  });
+});
+
+// SHOW NAVIGATION AFTER LOGIN
+onAuthStateChanged(auth, user => {
+  if (user) {
+    $("mainNav").classList.remove("hidden");
+    checkAdmin();
+  } else {
+    $("mainNav").classList.add("hidden");
+  }
+});
+  
 </script>
 </body>
 </html>
