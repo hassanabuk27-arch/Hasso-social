@@ -883,3 +883,52 @@ $("sendMessage").onclick = async () => {
     notify(error.message);
   }
 };
+// SEARCH HASSO
+$("searchInput").oninput = async () => {
+  const term = $("searchInput").value.trim().toLowerCase();
+  const box = $("searchResults");
+
+  box.innerHTML = "";
+
+  if (!term) return;
+
+  try {
+    const users = await getDocs(
+      query(collection(db, "users"), limit(100))
+    );
+
+    users.forEach(userDoc => {
+      const person = userDoc.data();
+
+      if ((person.name || "").toLowerCase().includes(term)) {
+        const item = document.createElement("div");
+        item.className = "card";
+        item.textContent = "Person: " + person.name;
+        box.appendChild(item);
+      }
+    });
+
+    const posts = await getDocs(
+      query(collection(db, "posts"), limit(100))
+    );
+
+    posts.forEach(postDoc => {
+      const post = postDoc.data();
+
+      if ((post.text || "").toLowerCase().includes(term)) {
+        const item = document.createElement("div");
+        item.className = "card";
+        item.textContent =
+          "Post by " + (post.name || "User") + ": " + post.text;
+
+        box.appendChild(item);
+      }
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No results found.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+};
