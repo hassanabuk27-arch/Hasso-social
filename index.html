@@ -622,6 +622,113 @@ function loadNotifications() {
   });
       }
       
+// LOAD CHATS
+async function loadChats() {
+  const box = $("chatList");
+  box.innerHTML = "Loading chats...";
+
+  try {
+    const snapshot = await getDocs(
+      collection(db, "users", currentUser.uid, "following")
+    );
+
+    box.innerHTML = "";
+
+    for (const personDoc of snapshot.docs) {
+      const uid = personDoc.id;
+      const userSnap = await getDoc(doc(db, "users", uid));
+
+      if (!userSnap.exists()) continue;
+
+      const person = userSnap.data();
+      const button = document.createElement("button");
+
+      button.textContent = "Chat with " + (person.name || "User");
+      button.onclick = () => openChat(uid, person.name || "User");
+
+      box.appendChild(button);
+    }
+
+    if (!box.children.length) {
+      box.textContent = "Follow someone first to start a chat.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+}
+
+// OPEN CHAT
+async function openChat(uid, name) {
+  activeChat = uid;
+  $("messageList").innerHTML = "";
+  $("messageList").dataset.chatUser = uid;
+
+  if (stopMessages) stopMessages();
+
+  const chatId = [currentUser.uid, uid].sort().join("_");
+
+  const messagesRef = collection(db, "chats", chatId, "messages");
+  const messagesQuery = query(
+    messagesRef,
+    orderBy("createdAt", "asc"),
+    limit(100)
+  );
+
+  stopMessages = onSnapshot(messagesQuery, snapshot => {
+    const box = $("messageList");
+    box.innerHTML = "";
+
+    snapshot.forEach(messageDoc => {
+      const message = messageDoc.data();
+
+      const item = document.createElement("div");
+      item.className = "message";
+
+      const sender = document.createElement("b");
+      sender.textContent =
+        message.senderUid === currentUser.uid ? "You" : name;
+
+      const content = document.createElement("p");
+      content.textContent = message.text || "";
+
+      item.append(sender, content);
+      box.appendChild(item);
+    });
+
+    box.scrollTop = box.scrollHeight;
+  }, error => {
+    $("messageList").textContent = error.message;
+  });
+}
+
+// SEND MESSAGE
+$("sendMessage").onclick = async () => {
+  if (!activeChat) {
+    return showMessage("Choose a person to chat with first.");
+  }
+
+  const text = $("messageText").value.trim();
+  if (!text) return;
+
+  const chatId = [currentUser.uid, activeChat].sort().join("_");
+
+  try {
+    await addDoc(
+      collection(db, "chats", chatId, "messages"),
+      {
+        senderUid: currentUser.uid,
+        receiverUid: activeChat,
+        text,
+        createdAt: serverTimestamp()
+      }
+    );
+
+    $("messageText").value = "";
+  } catch (error) {
+    showMessage(error.message);
+  }
+};
+    
 </script>
 </body>
 </html>
