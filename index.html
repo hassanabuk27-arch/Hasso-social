@@ -138,3 +138,260 @@ textarea{min-height:85px;resize:vertical}
 
 <script type="module">
   
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  serverTimestamp,
+  updateDoc,
+  deleteDoc,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
+  authDomain: "hasso-4bc9e.firebaseapp.com",
+  projectId: "hasso-4bc9e",
+  storageBucket: "hasso-4bc9e.firebasestorage.app",
+  messagingSenderId: "150032029282",
+  appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+
+let currentUser = null;
+let currentProfile = null;
+let activeChat = null;
+
+let stopFeed = null;
+let stopStories = null;
+let stopNotifications = null;
+let stopMessages = null;
+
+function notify(message) {
+  alert(message);
+}
+
+function validUrl(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol)
+      ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+// NAVIGATION
+function showTab(tabId) {
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.classList.add("hidden");
+  });
+
+  $(tabId).classList.remove("hidden");
+
+  if (tabId === "news") loadFeed();
+  if (tabId === "stories") loadStories();
+  if (tabId === "people") loadPeople();
+  if (tabId === "notifications") loadNotifications();
+  if (tabId === "messages") loadChats();
+  if (tabId === "profile") loadProfileStats();
+}
+
+document.querySelectorAll("#mainNav button").forEach(button => {
+  button.onclick = async () => {
+    const tab = button.dataset.tab;
+
+    if (tab === "admin") {
+      const adminSnap = await getDoc(
+        doc(db, "admins", currentUser.uid)
+      );
+
+      if (!adminSnap.exists() ||
+          adminSnap.data().role !== "admin") {
+        return notify("Admin access only.");
+      }
+    }
+
+    showTab(tab);
+  };
+});
+
+// REGISTER
+$("registerBtn").onclick = async () => {
+  const name = $("regName").value.trim();
+  const email = $("regEmail").value.trim();
+  const password = $("regPassword").value;
+
+  if (!name || !email || !password) {
+    return notify("Please fill in all fields.");
+  }
+
+  if (password.length < 6) {
+    return notify("Password must have at least 6 characters.");
+  }
+
+  try {
+    const result = await createUserWithEmailAndPassword(
+      auth, email, password
+    );
+
+    await setDoc(doc(db, "users", result.user.uid), {
+      uid: result.user.uid,
+      name,
+      email,
+      photoURL: "",
+      verified: false,
+      createdAt: serverTimestamp()
+    });
+
+    notify("Welcome to HASSO! Account created.");
+  } catch (error) {
+    notify(error.message);
+  }
+};
+
+// LOGIN
+$("loginBtn").onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      $("loginEmail").value.trim(),
+      $("loginPassword").value
+    );
+  } catch (error) {
+    notify(error.message);
+  }
+};
+
+// LOAD PROFILE
+async function loadProfile() {
+  const snap = await getDoc(
+    doc(db, "users", currentUser.uid)
+  );
+
+  if (!snap.exists()) return;
+
+  currentProfile = snap.data();
+
+  $("headerUser").textContent = currentProfile.name;
+  $("profileName").textContent = currentProfile.name;
+  $("profileEmail").textContent = currentUser.email;
+  $("editName").value = currentProfile.name || "";
+  $("editPhoto").value = currentProfile.photoURL || "";
+
+  $("profilePhoto").src =
+    validUrl(currentProfile.photoURL) ||
+    "https://placehold.co/100x100";
+
+  if (currentProfile.verified) {
+    $("profileName").textContent += " ✓";
+  }
+}
+
+// AUTH STATE
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+
+  if (user) {
+    try {
+      const snap = await getDoc(doc(db, "users", user.uid));
+
+      if (!snap.exists()) {
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: user.email,
+          email: user.email,
+          photoURL: "",
+          verified: false,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      await loadProfile();
+
+      $("authSection").classList.add("hidden");
+      $("mainNav").classList.remove("hidden");
+
+      showTab("news");
+    } catch (error) {
+      notify(error.message);
+    }
+  } else {
+    $("authSection").classList.remove("hidden");
+    $("mainNav").classList.add("hidden");
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.classList.add("hidden");
+    });
+
+    if (stopFeed) stopFeed();
+    if (stopStories) stopStories();
+    if (stopNotifications) stopNotifications();
+    if (stopMessages) stopMessages();
+  }
+});
+
+// SAVE PROFILE
+$("saveProfile").onclick = async () => {
+  const name = $("editName").value.trim();
+  const photoURL = validUrl($("editPhoto").value.trim());
+
+  if (!name) return notify("Enter your name.");
+
+  try {
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      name,
+      photoURL
+    });
+
+    await loadProfile();
+    notify("Profile saved successfully!");
+  } catch (error) {
+    notify(error.message);
+  }
+};
+
+// LOGOUT
+$("logoutBtn").onclick = async () => {
+  await signOut(auth);
+};
+
+// PROFILE FOLLOWER STATISTICS
+async function loadProfileStats() {
+  const followers = await getDocs(
+    collection(db, "users", currentUser.uid, "followers")
+  );
+
+  const following = await getDocs(
+    collection(db, "users", currentUser.uid, "following")
+  );
+
+  $("profileStats").textContent =
+    followers.size + " Followers · " +
+    following.size + " Following";
+  }
+  
+  
