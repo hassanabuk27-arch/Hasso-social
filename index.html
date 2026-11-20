@@ -3,347 +3,141 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HASSO - Connect. Share. Belong.</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HASSO - Social Network</title>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#f0f2f5;color:#1c1e21;font-family:Arial,sans-serif}
-header{background:#1877f2;color:#fff;padding:16px;text-align:center;font-size:26px;font-weight:bold;position:sticky;top:0;z-index:5}
-main{max-width:680px;margin:18px auto;padding:10px}
-.card{background:#fff;border-radius:13px;padding:16px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
-input,textarea{width:100%;padding:12px;border:1px solid #ccd0d5;border-radius:9px;margin:7px 0;font-size:15px}
-button{border:0;border-radius:8px;padding:11px 15px;background:#1877f2;color:#fff;font-weight:bold;cursor:pointer;margin:4px 3px 4px 0}
-button:disabled{opacity:.55;cursor:wait}
-.gray{background:#606770}.hidden{display:none!important}
-.avatar{width:65px;height:65px;border-radius:50%;object-fit:cover;background:#ddd}
-.postHead,.userRow{display:flex;align-items:center;gap:10px}
-.postHead .avatar,.userRow .avatar{width:45px;height:45px}
-.post{border-bottom:1px solid #ddd;padding:14px 0}
-.postImage{width:100%;max-height:450px;object-fit:contain;border-radius:10px;margin-top:10px;background:#eee}
-.postText{white-space:pre-wrap;overflow-wrap:anywhere}
-.small{font-size:12px;color:#65676b}
-.comment{background:#f0f2f5;padding:9px;border-radius:10px;margin:6px 0;font-size:14px}
-.actions{display:flex;gap:6px;flex-wrap:wrap}
-.message{font-size:14px;color:#b3261e;white-space:pre-wrap}
-.stats{display:flex;gap:20px;margin:12px 0;font-size:14px}
-.userRow{padding:10px 0;border-bottom:1px solid #eee}
-.userInfo{flex:1;min-width:0}
-.userInfo strong{overflow-wrap:anywhere}
-.clickable{cursor:pointer;color:#1877f2}
-hr{border:0;border-top:1px solid #eee;margin:14px 0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f2f5;color:#222}
+header{background:#1877f2;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:25px}
+main{max-width:850px;margin:20px auto;padding:12px}
+section{background:white;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
+input,textarea,button{width:100%;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:7px;font-size:15px}
+button{background:#1877f2;color:white;border:0;cursor:pointer;font-weight:bold}
+button:hover{opacity:.9}
+button.secondary{background:#555}
+button.danger{background:#d93025}
+.hidden{display:none!important}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:15px}
+.tabs button{font-size:13px;padding:10px 4px}
+.post{border-bottom:1px solid #eee;padding:15px 0}
+.post img{max-width:100%;border-radius:10px}
+.avatar{width:45px;height:45px;border-radius:50%;object-fit:cover}
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}
+.user-row div{flex:1}
+small{color:#777}
+h2{margin-bottom:12px}
+h3{margin:8px 0}
+.badge{color:#1877f2;font-weight:bold}
+textarea{min-height:85px;resize:vertical}
+#profileView{display:none}
+@media(max-width:600px){
+main{margin:8px auto;padding:8px}
+.tabs{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
+
 <body>
-<header>HASSO</header>
+
+<header>
+<h1>HASSO</h1>
+<button id="logoutBtn" class="hidden" style="width:auto">Logout</button>
+</header>
+
 <main>
-<section id="authSection" class="card">
-<h2>Welcome to HASSO</h2><p>Connect. Share. Belong.</p>
-<input id="nameInput" placeholder="Your name (for new account)" autocomplete="name">
-<input id="email" type="email" placeholder="Email address" autocomplete="email">
-<input id="password" type="password" placeholder="Password" autocomplete="current-password">
-<button id="loginBtn" type="button">Login</button>
-<button id="registerBtn" class="gray" type="button">Create Account</button>
-<p id="message" class="message" aria-live="polite"></p>
+
+<!-- AUTHENTICATION -->
+<section id="auth">
+<h2>Welcome to HASSO</h2>
+<p>Create an account or log in.</p>
+<input id="name" placeholder="Full name">
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password">
+<button id="registerBtn">Create Account</button>
+<button id="loginBtn" class="secondary">Login</button>
+<p id="authMessage"></p>
 </section>
 
-<section id="appSection" class="hidden">
-<div class="card">
-<div class="postHead"><img id="myAvatar" class="avatar" alt="Profile photo">
-<div><strong id="myName">HASSO User</strong><div id="myEmail" class="small"></div></div></div>
-<div class="stats"><span><strong id="myFollowers">0</strong> Followers</span><span><strong id="myFollowing">0</strong> Following</span></div>
-<hr>
-<label>Change profile photo</label><input id="avatarFile" type="file" accept="image/*">
-<label>Change your name</label><input id="newName" placeholder="Your name">
-<button id="saveProfileBtn" type="button">Save Profile</button>
-<button id="logoutBtn" class="gray" type="button">Logout</button>
-<p id="profileMessage" class="small" aria-live="polite"></p>
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+
+<section>
+<h2 id="welcome">Welcome</h2>
+<p id="myEmail"></p>
+<input id="newName" placeholder="Update your name">
+<input id="photoUrl" placeholder="Profile photo URL">
+<button id="saveProfile">Save Profile</button>
+</section>
+
+<!-- NAVIGATION -->
+<div class="tabs">
+<button data-tab="feed">Feed</button>
+<button data-tab="people">People</button>
+<button data-tab="search">Search</button>
+<button data-tab="notifications">Notifications</button>
+<button data-tab="messages">Messages</button>
+<button data-tab="admin">Admin</button>
 </div>
 
-<div class="card"><h3>Find People</h3><p class="small">Discover and follow other HASSO users.</p><div id="peopleList">Loading people...</div></div>
+<!-- FEED -->
+<section id="feed" class="tab">
+<h2>News Feed</h2>
+<textarea id="postText" placeholder="What's on your mind?"></textarea>
+<input id="postImage" placeholder="Image URL (optional)">
+<button id="publishPost">Publish Post</button>
+<div id="feedList"></div>
+</section>
 
-<div class="card"><h3>Create a Post</h3>
-<textarea id="postText" rows="3" placeholder="What's on your mind?"></textarea>
-<label>Add a photo (optional)</label><input id="postFile" type="file" accept="image/*">
-<button id="postBtn" type="button">Publish Post</button><p id="postMessage" class="message" aria-live="polite"></p>
+<!-- PEOPLE -->
+<section id="people" class="tab hidden">
+<h2>Find People</h2>
+<div id="peopleList"></div>
+</section>
+
+<!-- SEARCH -->
+<section id="search" class="tab hidden">
+<h2>Search HASSO</h2>
+<input id="searchInput" placeholder="Search people or posts">
+<button id="searchBtn">Search</button>
+<div id="searchResults"></div>
+</section>
+
+<!-- NOTIFICATIONS -->
+<section id="notifications" class="tab hidden">
+<h2>Notifications</h2>
+<div id="notificationList"></div>
+</section>
+
+<!-- MESSAGES -->
+<section id="messages" class="tab hidden">
+<h2>Private Messages</h2>
+<div id="chatList"></div>
+<div id="chatArea">
+<p>Select a person to start chatting.</p>
 </div>
-
-<div class="card"><h3>News Feed</h3><div id="feed">Loading posts...</div></div>
 </section>
 
-<section id="profileView" class="card hidden">
-<button id="backBtn" class="gray" type="button">← Back</button>
-<div class="postHead"><img id="viewAvatar" class="avatar" alt="Profile photo">
-<div><h2 id="viewName">HASSO User</h2><div id="viewEmail" class="small"></div></div></div>
-<div class="stats"><span><strong id="viewFollowers">0</strong> Followers</span><span><strong id="viewFollowing">0</strong> Following</span></div>
-<div id="viewPosts"></div>
+<!-- ADMIN -->
+<section id="admin" class="tab hidden">
+<h2>Admin Dashboard</h2>
+<div id="adminContent">
+<p>Admin access only.</p>
+</div>
 </section>
+
+<!-- PROFILE VIEW -->
+<section id="profileView">
+<button id="backBtn" class="secondary">Back</button>
+<div id="profileContent"></div>
+<button id="followBtn">Follow</button>
+<button id="messageBtn">Message</button>
+<button id="reportBtn" class="danger">Report User</button>
+<button id="verifyMe">Request Verification</button>
+</section>
+
+</div>
 </main>
-
-<script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
- getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,
- onAuthStateChanged,signOut,updateProfile
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
- getFirestore,collection,doc,setDoc,getDoc,addDoc,query,
- orderBy,onSnapshot,serverTimestamp,deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getStorage,ref,uploadBytes,getDownloadURL} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-const firebaseConfig={
- apiKey:"AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
- authDomain:"hasso-4bc9e.firebaseapp.com",
- projectId:"hasso-4bc9e",
- storageBucket:"hasso-4bc9e.firebasestorage.app",
- messagingSenderId:"150032029282",
- appId:"1:150032029282:web:3d790c6d4ae68b3f50a33b"
-};
-
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-const storage=getStorage(app);
-const $=id=>document.getElementById(id);
-let currentProfile={};
-let stops=[];
-let profileStops=[];
-let busyAuth=false;
-
-function say(id,text){$(id).textContent=text||"";}
-function safeImage(url){return url||"https://www.gravatar.com/avatar/?d=mp";}
-function stopAll(){stops.forEach(fn=>{try{fn()}catch(e){}});stops=[];}
-function stopProfile(){profileStops.forEach(fn=>{try{fn()}catch(e){}});profileStops=[];}
-
-async function uploadImage(file,path){
- if(!file)return "";
- if(!file.type.startsWith("image/"))throw new Error("Please choose an image file.");
- if(file.size>5*1024*1024)throw new Error("Image must be smaller than 5MB.");
- const r=ref(storage,path);
- await uploadBytes(r,file);
- return getDownloadURL(r);
-}
-
-$("loginBtn").addEventListener("click",async()=>{
- if(busyAuth)return;
- const email=$("email").value.trim(),password=$("password").value;
- say("message","");
- if(!email||!password){say("message","Enter your email and password.");return;}
- busyAuth=true;$("loginBtn").disabled=true;
- try{await signInWithEmailAndPassword(auth,email,password);}
- catch(e){say("message",friendlyAuthError(e));}
- finally{busyAuth=false;$("loginBtn").disabled=false;}
-});
-
-$("registerBtn").addEventListener("click",async()=>{
- if(busyAuth)return;
- const name=$("nameInput").value.trim(),email=$("email").value.trim(),password=$("password").value;
- say("message","");
- if(!name||!email||!password){say("message","Enter your name, email and password.");return;}
- if(password.length<6){say("message","Password must be at least 6 characters.");return;}
- busyAuth=true;$("registerBtn").disabled=true;
- try{
-  const result=await createUserWithEmailAndPassword(auth,email,password);
-  await updateProfile(result.user,{displayName:name});
-  await setDoc(doc(db,"users",result.user.uid),{name,email,photoURL:"",createdAt:serverTimestamp()});
- }catch(e){say("message",friendlyAuthError(e));}
- finally{busyAuth=false;$("registerBtn").disabled=false;}
-});
-
-function friendlyAuthError(e){
- const code=e?.code||"";
- if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found")return "Email or password is incorrect.";
- if(code==="auth/email-already-in-use")return "This email already has an account. Please log in.";
- if(code==="auth/weak-password")return "Password must contain at least 6 characters.";
- if(code==="auth/invalid-email")return "Please enter a valid email address.";
- if(code==="auth/network-request-failed")return "Network error. Check your internet connection.";
- if(code==="auth/operation-not-allowed")return "Email/password sign-in is not enabled in Firebase Authentication.";
- return e?.message||"Something went wrong. Please try again.";
-}
-
-$("logoutBtn").addEventListener("click",()=>signOut(auth));
-$("backBtn").addEventListener("click",()=>{
- stopProfile();$("profileView").classList.add("hidden");$("appSection").classList.remove("hidden");
-});
-
-onAuthStateChanged(auth,async user=>{
- stopAll();stopProfile();
- $("profileView").classList.add("hidden");
- if(!user){
-  $("authSection").classList.remove("hidden");$("appSection").classList.add("hidden");return;
- }
- $("authSection").classList.add("hidden");$("appSection").classList.remove("hidden");
- try{
-  const userRef=doc(db,"users",user.uid),snap=await getDoc(userRef);
-  if(snap.exists())currentProfile=snap.data();
-  else{
-   currentProfile={name:user.displayName||"HASSO User",email:user.email||"",photoURL:user.photoURL||""};
-   await setDoc(userRef,{...currentProfile,createdAt:serverTimestamp()});
-  }
-  showMyProfile(user);
-  watchMyStats(user.uid);
-  loadPeople(user.uid);
-  loadFeed();
- }catch(e){say("profileMessage","Could not load account: "+e.message);}
-});
-
-function showMyProfile(user){
- $("myName").textContent=currentProfile.name||user.displayName||"HASSO User";
- $("myEmail").textContent=user.email||"";
- $("myAvatar").src=safeImage(currentProfile.photoURL||user.photoURL);
- $("newName").value=currentProfile.name||user.displayName||"";
-}
-
-function watchMyStats(uid){
- stops.push(onSnapshot(collection(db,"users",uid,"followers"),s=>$("myFollowers").textContent=s.size,
-  e=>say("profileMessage","Followers error: "+e.message)));
- stops.push(onSnapshot(collection(db,"users",uid,"following"),s=>$("myFollowing").textContent=s.size,
-  e=>say("profileMessage","Following error: "+e.message)));
-}
-
-$("saveProfileBtn").addEventListener("click",async()=>{
- const user=auth.currentUser;if(!user)return;
- $("saveProfileBtn").disabled=true;
- try{
-  const name=$("newName").value.trim();if(!name)throw new Error("Enter your name.");
-  let photoURL=currentProfile.photoURL||"";
-  const file=$("avatarFile").files[0];if(file)photoURL=await uploadImage(file,`profiles/${user.uid}/avatar`);
-  await updateProfile(user,{displayName:name,photoURL});
-  await setDoc(doc(db,"users",user.uid),{name,photoURL,email:user.email||"",updatedAt:serverTimestamp()},{merge:true});
-  currentProfile={...currentProfile,name,photoURL};showMyProfile(user);$("avatarFile").value="";
-  say("profileMessage","Profile updated.");
- }catch(e){say("profileMessage",e.message);}
- finally{$("saveProfileBtn").disabled=false;}
-});
-
-function loadPeople(myUid){
- const unsub=onSnapshot(collection(db,"users"),snapshot=>{
-  const box=$("peopleList");box.innerHTML="";
-  const people=snapshot.docs.filter(d=>d.id!==myUid);
-  if(!people.length){box.textContent="No other users yet.";return;}
-  for(const person of people){
-   const data=person.data(),uid=person.id;
-   const row=document.createElement("div");row.className="userRow";
-   const avatar=document.createElement("img");avatar.className="avatar";avatar.src=safeImage(data.photoURL);
-   const info=document.createElement("div");info.className="userInfo";
-   const name=document.createElement("strong");name.textContent=data.name||"HASSO User";name.className="clickable";
-   name.addEventListener("click",()=>openUserProfile(uid,data));
-   avatar.addEventListener("click",()=>openUserProfile(uid,data));avatar.style.cursor="pointer";
-   const email=document.createElement("div");email.className="small";email.textContent=data.email||"";
-   info.append(name,email);
-   const button=document.createElement("button");button.textContent="Follow";button.disabled=true;
-   const followingRef=doc(db,"users",myUid,"following",uid);
-   const followerRef=doc(db,"users",uid,"followers",myUid);
-   const stop=onSnapshot(followingRef,s=>{
-    button.disabled=false;button.textContent=s.exists()?"Following":"Follow";button.className=s.exists()?"gray":"";
-   },e=>{button.disabled=true;button.textContent="Unavailable";console.error("Follow status:",e);});
-   stops.push(stop);
-   button.addEventListener("click",async()=>{
-    button.disabled=true;
-    try{
-     const existing=await getDoc(followingRef);
-     if(existing.exists()){
-      await deleteDoc(followingRef);await deleteDoc(followerRef);
-     }else{
-      await setDoc(followingRef,{uid,createdAt:serverTimestamp()});
-      await setDoc(followerRef,{uid:myUid,createdAt:serverTimestamp()});
-     }
-    }catch(e){alert("Follow error: "+e.message);}
-    finally{button.disabled=false;}
-   });
-   row.append(avatar,info,button);box.append(row);
-  }
- },e=>{$("peopleList").textContent="People error: "+e.message;});
- stops.push(unsub);
-}
-
-async function openUserProfile(uid,data){
- stopProfile();$("appSection").classList.add("hidden");$("profileView").classList.remove("hidden");
- $("viewName").textContent=data.name||"HASSO User";$("viewEmail").textContent=data.email||"";
- $("viewAvatar").src=safeImage(data.photoURL);$("viewPosts").textContent="Loading posts...";
- try{
-  const [followers,following]=await Promise.all([
-   getDocCount(collection(db,"users",uid,"followers")),
-   getDocCount(collection(db,"users",uid,"following"))
-  ]);
-  $("viewFollowers").textContent=followers;$("viewFollowing").textContent=following;
-  const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
-  const unsub=onSnapshot(q,s=>{
-   const box=$("viewPosts");box.innerHTML="";
-   const own=s.docs.filter(p=>p.data().ownerId===uid);
-   if(!own.length){box.textContent="No posts yet.";return;}
-   own.forEach(p=>renderPost(p.id,p.data(),box));
-  },e=>{$("viewPosts").textContent="Posts error: "+e.message;});
-  profileStops.push(unsub);
- }catch(e){$("viewPosts").textContent="Profile error: "+e.message;}
-}
-async function getDocCount(refCollection){
- const {getCountFromServer}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
- const result=await getCountFromServer(refCollection);return result.data().count;
-}
-
-$("postBtn").addEventListener("click",async()=>{
- const user=auth.currentUser,text=$("postText").value.trim(),file=$("postFile").files[0];
- if(!user)return;if(!text&&!file){say("postMessage","Write something or choose a photo.");return;}
- $("postBtn").disabled=true;say("postMessage","Publishing...");
- try{
-  let imageURL="";if(file)imageURL=await uploadImage(file,`posts/${user.uid}/${Date.now()}`);
-  await addDoc(collection(db,"posts"),{ownerId:user.uid,authorName:currentProfile.name||user.displayName||"HASSO User",
-   authorPhoto:currentProfile.photoURL||"",text,imageURL,createdAt:serverTimestamp()});
-  $("postText").value="";$("postFile").value="";say("postMessage","Post published.");
- }catch(e){say("postMessage","Post error: "+e.message);}
- finally{$("postBtn").disabled=false;}
-});
-
-function loadFeed(){
- const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
- const unsub=onSnapshot(q,s=>{
-  const feed=$("feed");feed.innerHTML="";
-  if(s.empty){feed.textContent="No posts yet. Be the first!";return;}
-  s.forEach(p=>renderPost(p.id,p.data(),feed));
- },e=>{$("feed").textContent="Feed error: "+e.message;});
- stops.push(unsub);
-}
-
-function renderPost(postId,data,feed){
- const user=auth.currentUser;if(!user)return;
- const wrap=document.createElement("article");wrap.className="post";
- const head=document.createElement("div");head.className="postHead";
- const avatar=document.createElement("img");avatar.className="avatar";avatar.src=safeImage(data.authorPhoto);
- const author=document.createElement("strong");author.textContent=data.authorName||"HASSO User";
- head.append(avatar,author);wrap.append(head);
- if(data.text){const p=document.createElement("p");p.className="postText";p.textContent=data.text;wrap.append(p);}
- if(data.imageURL){const img=document.createElement("img");img.className="postImage";img.src=data.imageURL;img.alt="Post image";wrap.append(img);}
- const actions=document.createElement("div");actions.className="actions";
- const likeBtn=document.createElement("button");likeBtn.className="gray";likeBtn.textContent="Like";
- const likeCount=document.createElement("span");likeCount.className="small";
- const likesRef=collection(db,"posts",postId,"likes"),myLike=doc(db,"posts",postId,"likes",user.uid);
- const stopLikes=onSnapshot(likesRef,s=>{
-  likeCount.textContent=s.size+" likes";likeBtn.textContent=s.docs.some(d=>d.id===user.uid)?"Unlike":"Like";
- },e=>console.error("Likes:",e));
- stops.push(stopLikes);
- likeBtn.addEventListener("click",async()=>{
-  likeBtn.disabled=true;try{const existing=await getDoc(myLike);if(existing.exists())await deleteDoc(myLike);else await setDoc(myLike,{uid:user.uid,createdAt:serverTimestamp()});}
-  catch(e){alert("Like error: "+e.message);}finally{likeBtn.disabled=false;}
- });
- actions.append(likeBtn,likeCount);wrap.append(actions);
- const commentsList=document.createElement("div"),commentInput=document.createElement("input"),commentBtn=document.createElement("button");
- commentInput.placeholder="Write a comment...";commentBtn.textContent="Comment";
- const commentsRef=collection(db,"posts",postId,"comments");
- const stopComments=onSnapshot(query(commentsRef,orderBy("createdAt","asc")),s=>{
-  commentsList.innerHTML="";
-  s.forEach(c=>{const item=document.createElement("div");item.className="comment";
-   const b=document.createElement("strong");b.textContent=(c.data().authorName||"User")+": ";
-   const t=document.createElement("span");t.textContent=c.data().text||"";item.append(b,t);commentsList.append(item);});
- },e=>console.error("Comments:",e));
- stops.push(stopComments);
- commentBtn.addEventListener("click",async()=>{
-  const text=commentInput.value.trim();if(!text)return;commentBtn.disabled=true;
-  try{await addDoc(commentsRef,{uid:user.uid,authorName:currentProfile.name||user.displayName||"HASSO User",text,createdAt:serverTimestamp()});commentInput.value="";}
-  catch(e){alert("Comment error: "+e.message);}finally{commentBtn.disabled=false;}
- });
- wrap.append(commentsList,commentInput,commentBtn);feed.append(wrap);
-}
-</script>
 </body>
 </html>
