@@ -906,11 +906,14 @@ function loadNotifications() {
 // LOAD CHAT LIST
 async function loadChats() {
   const box = $("chatList");
-  box.innerHTML = "Loading chats...";
+  box.textContent = "Loading chats...";
 
   try {
     const chats = await getDocs(
-      collection(db, "users", currentUser.uid, "chats")
+      query(
+        collection(db, "chats"),
+        where("participants", "array-contains", currentUser.uid)
+      )
     );
 
     box.innerHTML = "";
@@ -918,12 +921,19 @@ async function loadChats() {
     chats.forEach(chatDoc => {
       const data = chatDoc.data();
 
+      const otherUid = data.participants.find(
+        uid => uid !== currentUser.uid
+      );
+
+      const personName =
+        data.participantNames?.[otherUid] || "HASSO User";
+
       const button = document.createElement("button");
-      button.textContent = data.name || "HASSO User";
+      button.textContent = personName;
 
       button.onclick = () => {
         activeChat = chatDoc.id;
-        $("chatTitle").textContent = data.name || "Chat";
+        $("chatTitle").textContent = personName;
         loadMessages();
       };
 
@@ -931,13 +941,83 @@ async function loadChats() {
     });
 
     if (!box.children.length) {
-      box.textContent = "No chats yet. Open People to connect.";
+      box.textContent = "No chats yet. Open People to message someone.";
     }
   } catch (error) {
     box.textContent = error.message;
   }
 }
 
+// LOAD MESSAGES
+function loadMessages() {
+  if (!activeChat) return;
+
+  if (stopMessages) stopMessages();
+
+  const box = $("messageList");
+  box.textContent = "Loading messages...";
+
+  const q = query(
+    collection(db, "chats", activeChat, "messages"),
+    orderBy("createdAt", "asc"),
+    limit(100)
+  );
+
+  stopMessages = onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(messageDoc => {
+      const data = messageDoc.data();
+
+      const item = document.createElement("div");
+      item.className = "message";
+
+      item.textContent =
+        (data.name || "User") + ": " + (data.text || "");
+
+      box.appendChild(item);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No messages yet. Start the conversation!";
+    }
+
+    box.scrollTop = box.scrollHeight;
+  }, error => {
+    box.textContent = error.message;
+  });
+}
+
+// SEND MESSAGE
+$("sendMessage").onclick = async () => {
+  const text = $("messageText").value.trim();
+
+  if (!activeChat) {
+    return notify("Choose a person first.");
+  }
+
+  if (!text) return;
+
+  try {
+    await addDoc(
+      collection(db, "chats", activeChat, "messages"),
+      {
+        uid: currentUser.uid,
+        name: currentProfile.name,
+        text,
+        createdAt: serverTimestamp()
+      }
+    );
+
+    await updateDoc(doc(db, "chats", activeChat), {
+      updatedAt: serverTimestamp()
+    });
+
+    $("messageText").value = "";
+  } catch (error) {
+    notify(error.message);
+  }
+};
 // OPEN MESSAGES
 function loadMessages() {
   if (!activeChat) return;
