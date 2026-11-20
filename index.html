@@ -629,3 +629,126 @@ function loadStories() {
     box.textContent = error.message;
   });
 }
+// LOAD PEOPLE
+async function loadPeople() {
+  const box = $("peopleList");
+  box.textContent = "Loading people...";
+
+  try {
+    const users = await getDocs(
+      query(collection(db, "users"), limit(100))
+    );
+
+    box.innerHTML = "";
+
+    users.forEach(userDoc => {
+      const person = userDoc.data();
+      const uid = userDoc.id;
+
+      if (uid === currentUser.uid) return;
+
+      const item = document.createElement("div");
+      item.className = "card";
+
+      const name = document.createElement("b");
+      name.textContent = person.name || "HASSO User";
+
+      const followBtn = document.createElement("button");
+      followBtn.textContent = "Loading...";
+
+      const followingRef = doc(
+        db, "users", currentUser.uid, "following", uid
+      );
+
+      const followerRef = doc(
+        db, "users", uid, "followers", currentUser.uid
+      );
+
+      const checkFollow = async () => {
+        const snap = await getDoc(followingRef);
+        followBtn.textContent = snap.exists() ? "Unfollow" : "Follow";
+      };
+
+      followBtn.onclick = async () => {
+        followBtn.disabled = true;
+
+        try {
+          const snap = await getDoc(followingRef);
+
+          if (snap.exists()) {
+            await deleteDoc(followingRef);
+            await deleteDoc(followerRef);
+          } else {
+            await setDoc(followingRef, {
+              uid,
+              name: person.name || "HASSO User",
+              createdAt: serverTimestamp()
+            });
+
+            await setDoc(followerRef, {
+              uid: currentUser.uid,
+              name: currentProfile.name,
+              createdAt: serverTimestamp()
+            });
+
+            await addDoc(
+              collection(db, "users", uid, "notifications"),
+              {
+                text: currentProfile.name + " started following you.",
+                from: currentUser.uid,
+                createdAt: serverTimestamp(),
+                read: false
+              }
+            );
+          }
+
+          await checkFollow();
+        } catch (error) {
+          notify(error.message);
+        }
+
+        followBtn.disabled = false;
+      };
+
+      item.append(name, followBtn);
+      box.appendChild(item);
+
+      checkFollow();
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No other users found.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+}
+
+// SEARCH PEOPLE
+$("peopleSearch").oninput = async () => {
+  const search = $("peopleSearch").value.trim().toLowerCase();
+
+  const users = await getDocs(
+    query(collection(db, "users"), limit(100))
+  );
+
+  $("peopleList").innerHTML = "";
+
+  users.forEach(userDoc => {
+    const person = userDoc.data();
+
+    if (
+      userDoc.id !== currentUser.uid &&
+      (person.name || "").toLowerCase().includes(search)
+    ) {
+      const item = document.createElement("div");
+      item.className = "card";
+
+      const name = document.createElement("b");
+      name.textContent = person.name || "HASSO User";
+
+      item.appendChild(name);
+      $("peopleList").appendChild(item);
+    }
+  });
+};
