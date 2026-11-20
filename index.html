@@ -393,5 +393,162 @@ async function loadProfileStats() {
     followers.size + " Followers · " +
     following.size + " Following";
   }
-  
+  // PUBLISH POST
+$("publishPost").onclick = async () => {
+  const text = $("postText").value.trim();
+  const imageURL = validUrl($("postImage").value.trim());
+
+  if (!text && !imageURL) {
+    return notify("Write something before publishing.");
+  }
+
+  try {
+    await addDoc(collection(db, "posts"), {
+      uid: currentUser.uid,
+      name: currentProfile.name,
+      text,
+      imageURL,
+      likes: [],
+      createdAt: serverTimestamp()
+    });
+
+    $("postText").value = "";
+    $("postImage").value = "";
+    notify("Your post is now published!");
+  } catch (error) {
+    notify(error.message);
+  }
+};
+
+// LOAD NEWS FEED
+function loadFeed() {
+  if (stopFeed) stopFeed();
+
+  const box = $("feedList");
+  box.textContent = "Loading News Feed...";
+
+  const q = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  stopFeed = onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(postDoc => {
+      const post = postDoc.data();
+      const postId = postDoc.id;
+
+      const item = document.createElement("div");
+      item.className = "post";
+
+      const name = document.createElement("b");
+      name.textContent = post.name || "HASSO User";
+
+      const verified = document.createElement("span");
+      verified.textContent = post.verified ? " ✓" : "";
+
+      const content = document.createElement("p");
+      content.textContent = post.text || "";
+
+      item.append(name, verified, content);
+
+      const imageURL = validUrl(post.imageURL);
+
+      if (imageURL) {
+        const img = document.createElement("img");
+        img.src = imageURL;
+        img.alt = "Post image";
+        item.appendChild(img);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "post-actions";
+
+      const likes = post.likes || [];
+      const liked = likes.includes(currentUser.uid);
+
+      const likeBtn = document.createElement("button");
+      likeBtn.textContent = liked ? "Unlike" : "Like";
+
+      likeBtn.onclick = async () => {
+        const updatedLikes = liked
+          ? likes.filter(uid => uid !== currentUser.uid)
+          : [...likes, currentUser.uid];
+
+        await updateDoc(doc(db, "posts", postId), {
+          likes: updatedLikes
+        });
+      };
+
+      const likeCount = document.createElement("span");
+      likeCount.textContent = likes.length + " Likes";
+
+      const commentBtn = document.createElement("button");
+      commentBtn.textContent = "Comment";
+
+      commentBtn.onclick = async () => {
+        const text = prompt("Write your comment:");
+
+        if (!text || !text.trim()) return;
+
+        await addDoc(
+          collection(db, "posts", postId, "comments"),
+          {
+            uid: currentUser.uid,
+            name: currentProfile.name,
+            text: text.trim(),
+            createdAt: serverTimestamp()
+          }
+        );
+
+        notify("Comment added!");
+      };
+
+      const viewBtn = document.createElement("button");
+      viewBtn.textContent = "View Comments";
+
+      const commentsBox = document.createElement("div");
+
+      viewBtn.onclick = async () => {
+        commentsBox.innerHTML = "Loading comments...";
+
+        const comments = await getDocs(
+          query(
+            collection(db, "posts", postId, "comments"),
+            orderBy("createdAt", "asc")
+          )
+        );
+
+        commentsBox.innerHTML = "";
+
+        comments.forEach(commentDoc => {
+          const comment = commentDoc.data();
+          const line = document.createElement("p");
+
+          line.textContent =
+            (comment.name || "User") + ": " +
+            (comment.text || "");
+
+          commentsBox.appendChild(line);
+        });
+
+        if (!commentsBox.children.length) {
+          commentsBox.textContent = "No comments yet.";
+        }
+      };
+
+      actions.append(likeBtn, likeCount, commentBtn, viewBtn);
+      item.append(actions, commentsBox);
+      box.appendChild(item);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No posts yet. Be the first to post!";
+    }
+  }, error => {
+    box.textContent = error.message;
+  });
+  }
   
