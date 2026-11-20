@@ -139,5 +139,553 @@ main{margin:8px auto;padding:8px}
 
 </div>
 </main>
+  
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore, doc, setDoc, getDoc, getDocs, addDoc,
+  collection, query, where, orderBy, limit, onSnapshot,
+  updateDoc, deleteDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
+  authDomain: "hasso-4bc9e.firebaseapp.com",
+  projectId: "hasso-4bc9e",
+  storageBucket: "hasso-4bc9e.firebasestorage.app",
+  messagingSenderId: "150032029282",
+  appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const ADMIN_UID = "tCML3KjgMMMQY86I3hx1xmdFMNK2";
+
+let currentUser = null;
+let currentProfile = null;
+let stopFeed = null;
+let stopNotifications = null;
+
+const $ = id => document.getElementById(id);
+
+function safe(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+
+function validUrl(value) {
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function say(id, message) {
+  if ($(id)) $(id).textContent = message;
+}
+
+async function notify(to, text, type) {
+  if (!to || to === currentUser.uid) return;
+  await addDoc(collection(db, "notifications"), {
+    to, from: currentUser.uid, text, type,
+    createdAt: serverTimestamp(), read: false
+  });
+}
+
+// REGISTER
+$("registerBtn").onclick = async () => {
+  const name = $("name").value.trim();
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  if (!name || !email || password.length < 6) {
+    return say("authMessage", "Enter your name, email and a password of at least 6 characters.");
+  }
+
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    await setDoc(doc(db, "users", result.user.uid), {
+      uid: result.user.uid,
+      name,
+      email,
+      photoURL: "",
+      verified: false,
+      createdAt: serverTimestamp()
+    });
+    say("authMessage", "Account created successfully!");
+  } catch (error) {
+    say("authMessage", error.message);
+  }
+};
+
+// LOGIN
+$("loginBtn").onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      $("email").value.trim(),
+      $("password").value
+    );
+  } catch (error) {
+    say("authMessage", error.message);
+  }
+};
+
+// LOGOUT
+$("logoutBtn").onclick = () => signOut(auth);
+
+// AUTH STATE
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+
+  if (!user) {
+    $("auth").classList.remove("hidden");
+    $("app").classList.add("hidden");
+    $("logoutBtn").classList.add("hidden");
+    if (stopFeed) stopFeed();
+    if (stopNotifications) stopNotifications();
+    return;
+  }
+
+  $("auth").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("logoutBtn").classList.remove("hidden");
+
+  const userRef = doc(db, "users", user.uid);
+  let userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
+      uid: user.uid,
+      name: user.email.split("@")[0],
+      email: user.email,
+      photoURL: "",
+      verified: false,
+      createdAt: serverTimestamp()
+    });
+    userSnap = await getDoc(userRef);
+  }
+
+  const data = userSnap.data();
+  $("welcome").textContent = "Welcome, " + data.name;
+  $("myEmail").textContent = user.email;
+  $("newName").value = data.name || "";
+  $("photoUrl").value = data.photoURL || "";
+
+  loadFeed();
+  loadNotifications();
+  loadPeople();
+  checkAdmin();
+});
+
+// SAVE PROFILE
+$("saveProfile").onclick = async () => {
+  const name = $("newName").value.trim();
+  const photoURL = validUrl($("photoUrl").value.trim());
+
+  if (!name) return alert("Enter your name.");
+
+  try {
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      name, photoURL
+    });
+    $("welcome").textContent = "Welcome, " + name;
+    alert("Profile updated!");
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+// NAVIGATION
+document.querySelectorAll("[data-tab]").forEach(button => {
+  button.onclick = () => {
+    document.querySelectorAll(".tab").forEach(tab =>
+      tab.classList.add("hidden")
+    );
+    $("profileView").style.display = "none";
+    $(button.dataset.tab).classList.remove("hidden");
+
+    if (button.dataset.tab === "people") loadPeople();
+    if (button.dataset.tab === "feed") loadFeed();
+    if (button.dataset.tab === "notifications") loadNotifications();
+  };
+});
+
+// FOLLOW / UNFOLLOW
+async function followUser(uid, name) {
+  if (!uid || uid === currentUser.uid) return;
+
+  const followingRef = doc(
+    db, "users", currentUser.uid, "following", uid
+  );
+  const followerRef = doc(
+    db, "users", uid, "followers", currentUser.uid
+  );
+
+  const existing = await getDoc(followingRef);
+
+  if (existing.exists()) {
+    await deleteDoc(followingRef);
+    await deleteDoc(followerRef);
+    alert("You unfollowed " + name);
+  } else {
+    await setDoc(followingRef, {
+      uid, createdAt: serverTimestamp()
+    });
+    await setDoc(followerRef, {
+      uid: currentUser.uid, createdAt: serverTimestamp()
+    });
+    await notify(uid, "started following you", "follow");
+    alert("You are now following " + name);
+  }
+
+  loadPeople();
+}
+
+// LOAD PEOPLE
+async function loadPeople() {
+  const box = $("peopleList");
+  box.innerHTML = "Loading people...";
+
+  try {
+    const result = await getDocs(
+      query(collection(db, "users"), limit(50))
+    );
+
+    box.innerHTML = "";
+
+    result.forEach(item => {
+      const person = item.data();
+      if (item.id === currentUser.uid) return;
+
+      const row = document.createElement("div");
+      row.className = "user-row";
+
+      const photo = validUrl(person.photoURL);
+      row.innerHTML = `
+        <img class="avatar" src="${photo || "https://placehold.co/50"}">
+        <div>
+          <b>${safe(person.name)}</b>
+          ${person.verified ? '<span class="badge"> ✓ Verified</span>' : ""}
+        </div>
+        <button class="follow-action" style="width:auto">View</button>
+      `;
+
+      row.querySelector("button").onclick = () =>
+        openProfile(item.id);
+
+      box.appendChild(row);
+    });
+  } catch (error) {
+    box.textContent = error.message;
+  }
+}
+
+// OPEN PROFILE
+async function openProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists()) return alert("User not found.");
+
+    currentProfile = { uid, ...snap.data() };
+
+    document.querySelectorAll(".tab").forEach(tab =>
+      tab.classList.add("hidden")
+    );
+
+    $("profileView").style.display = "block";
+
+    const person = currentProfile;
+    const photo = validUrl(person.photoURL);
+
+    $("profileContent").innerHTML = `
+      <img class="avatar" src="${photo || "https://placehold.co/70"}">
+      <h2>${safe(person.name)}
+        ${person.verified ? '<span class="badge">✓ Verified</span>' : ""}
+      </h2>
+      <p>${safe(person.email || "")}</p>
+    `;
+
+    $("followBtn").onclick = () =>
+      followUser(uid, person.name);
+
+    $("messageBtn").onclick = () =>
+      openChat(uid, person.name);
+
+    $("reportBtn").onclick = async () => {
+      const reason = prompt("Why are you reporting this account?");
+      if (!reason || !reason.trim()) return;
+
+      await addDoc(collection(db, "reports"), {
+        reporterUid: currentUser.uid,
+        reportedUid: uid,
+        reason: reason.trim(),
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
+      alert("Report submitted.");
+    };
+
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+$("backBtn").onclick = () => {
+  $("profileView").style.display = "none";
+  $("people").classList.remove("hidden");
+};
+
+// REQUEST VERIFICATION
+$("verifyMe").onclick = async () => {
+  try {
+    await addDoc(collection(db, "verificationRequests"), {
+      uid: currentUser.uid,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    alert("Verification request submitted.");
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+// PUBLISH POST
+$("publishPost").onclick = async () => {
+  const text = $("postText").value.trim();
+  const imageURL = validUrl($("postImage").value.trim());
+
+  if (!text && !imageURL) {
+    return alert("Write something or add an image.");
+  }
+
+  try {
+    const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+    const user = userSnap.data();
+
+    await addDoc(collection(db, "posts"), {
+      ownerId: currentUser.uid,
+      ownerName: user.name,
+      ownerPhoto: user.photoURL || "",
+      text,
+      imageURL,
+      createdAt: serverTimestamp()
+    });
+
+    $("postText").value = "";
+    $("postImage").value = "";
+    alert("Post published!");
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+// LOAD FEED
+function loadFeed() {
+  if (stopFeed) stopFeed();
+
+  const q = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  stopFeed = onSnapshot(q, snapshot => {
+    const box = $("feedList");
+    box.innerHTML = "";
+
+    snapshot.forEach(postDoc => {
+      const post = postDoc.data();
+      const postId = postDoc.id;
+      const image = validUrl(post.imageURL);
+
+      const item = document.createElement("div");
+      item.className = "post";
+
+      item.innerHTML = `
+        <b>${safe(post.ownerName)}</b>
+        <p>${safe(post.text)}</p>
+        ${image ? `<img src="${image}" alt="Post image">` : ""}
+        <button class="likeBtn">Like</button>
+        <button class="commentBtn secondary">Comment</button>
+        <div class="comments"></div>
+      `;
+
+      item.querySelector(".likeBtn").onclick = () =>
+        toggleLike(postId, post.ownerId);
+
+      item.querySelector(".commentBtn").onclick = () =>
+        addComment(postId, post.ownerId);
+
+      box.appendChild(item);
+      loadComments(postId, item.querySelector(".comments"));
+    });
+  }, error => {
+    $("feedList").textContent = error.message;
+  });
+}
+
+// LIKE / UNLIKE
+async function toggleLike(postId, ownerId) {
+  const likeRef = doc(
+    db, "posts", postId, "likes", currentUser.uid
+  );
+
+  const existing = await getDoc(likeRef);
+
+  if (existing.exists()) {
+    await deleteDoc(likeRef);
+  } else {
+    await setDoc(likeRef, {
+      uid: currentUser.uid,
+      createdAt: serverTimestamp()
+    });
+    await notify(ownerId, "liked your post", "like");
+  }
+}
+
+// ADD COMMENT
+async function addComment(postId, ownerId) {
+  const text = prompt("Write your comment:");
+  if (!text || !text.trim()) return;
+
+  const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+  const user = userSnap.data();
+
+  await addDoc(
+    collection(db, "posts", postId, "comments"),
+    {
+      uid: currentUser.uid,
+      name: user.name,
+      text: text.trim(),
+      createdAt: serverTimestamp()
+    }
+  );
+
+  await notify(ownerId, "commented on your post", "comment");
+}
+
+// LOAD COMMENTS
+function loadComments(postId, box) {
+  const q = query(
+    collection(db, "posts", postId, "comments"),
+    orderBy("createdAt", "asc"),
+    limit(30)
+  );
+
+  onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+    snapshot.forEach(comment => {
+      const data = comment.data();
+      const p = document.createElement("p");
+      p.textContent = data.name + ": " + data.text;
+      box.appendChild(p);
+    });
+  });
+}
+
+// NOTIFICATIONS
+function loadNotifications() {
+  if (stopNotifications) stopNotifications();
+
+  const q = query(
+    collection(db, "notifications"),
+    where("to", "==", currentUser.uid),
+    limit(50)
+  );
+
+  stopNotifications = onSnapshot(q, snapshot => {
+    const box = $("notificationList");
+    box.innerHTML = "";
+
+    snapshot.forEach(item => {
+      const data = item.data();
+      const p = document.createElement("p");
+      p.textContent = data.text || "New notification";
+      box.appendChild(p);
+    });
+
+    if (snapshot.empty) {
+      box.textContent = "No notifications yet.";
+    }
+  }, error => {
+    $("notificationList").textContent = error.message;
+  });
+}
+
+// SEARCH PEOPLE AND POSTS
+$("searchBtn").onclick = async () => {
+  const term = $("searchInput").value.trim().toLowerCase();
+  const box = $("searchResults");
+  box.innerHTML = "Searching...";
+
+  if (!term) {
+    box.textContent = "Enter a search term.";
+    return;
+  }
+
+  try {
+    const [users, posts] = await Promise.all([
+      getDocs(query(collection(db, "users"), limit(100))),
+      getDocs(query(collection(db, "posts"), limit(100)))
+    ]);
+
+    box.innerHTML = "<h3>People</h3>";
+
+    users.forEach(item => {
+      const data = item.data();
+      if ((data.name || "").toLowerCase().includes(term)) {
+        const button = document.createElement("button");
+        button.textContent = data.name;
+        button.onclick = () => openProfile(item.id);
+        box.appendChild(button);
+      }
+    });
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Posts";
+    box.appendChild(heading);
+
+    posts.forEach(item => {
+      const data = item.data();
+      if ((data.text || "").toLowerCase().includes(term)) {
+        const p = document.createElement("p");
+        p.textContent = data.ownerName + ": " + data.text;
+        box.appendChild(p);
+      }
+    });
+  } catch (error) {
+    box.textContent = error.message;
+  }
+};
+
+// CHAT FUNCTION WILL BE ADDED IN PART 3
+
+// ADMIN CHECK
+async function checkAdmin() {
+  const adminSnap = await getDoc(doc(db, "admins", currentUser.uid));
+
+  if (currentUser.uid === ADMIN_UID || adminSnap.exists()) {
+    $("adminContent").innerHTML =
+      "<p>Admin account detected. Full dashboard will be added in Part 3.</p>";
+  } else {
+    $("adminContent").textContent = "Admin access only.";
+  }
+}
+
+</script>
+
 </body>
 </html>
