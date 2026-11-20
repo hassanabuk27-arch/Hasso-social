@@ -692,7 +692,8 @@ async function openChat(uid, name) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    $("chat").classList.remove("hidden");
+    $("messages").classList.remove("hidden");
+$("profileView").style.display = "none";
     $("chatArea").innerHTML = `
       <h3>Chat with ${safe(name)}</h3>
       <div id="chatMessages" style="max-height:300px;overflow:auto"></div>
