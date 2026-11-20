@@ -73,7 +73,92 @@ main{margin:8px auto;padding:8px}
 <input id="photoUrl" placeholder="Profile photo URL">
 <button id="saveProfile">Save Profile</button>
 </section>
+// HASSO STORIES
 
+$("publishStory").onclick = async () => {
+  const text = $("storyText").value.trim();
+  const imageInput = $("storyImage").value.trim();
+  const imageURL = validUrl(imageInput);
+
+  if (!text && !imageURL) {
+    return alert("Write a story or add a valid image URL.");
+  }
+
+  if (imageInput && !imageURL) {
+    return alert("Please enter a valid image URL.");
+  }
+
+  try {
+    const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+    const user = userSnap.data();
+
+    await addDoc(collection(db, "stories"), {
+      uid: currentUser.uid,
+      name: user.name,
+      text,
+      imageURL,
+      createdAt: serverTimestamp()
+    });
+
+    $("storyText").value = "";
+    $("storyImage").value = "";
+    alert("Story shared successfully!");
+    loadStories();
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+function loadStories() {
+  const box = $("storyList");
+  box.textContent = "Loading stories...";
+
+  const q = query(
+    collection(db, "stories"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(storyDoc => {
+      const story = storyDoc.data();
+
+      if (story.createdAt) {
+        const age = Date.now() - story.createdAt.toDate().getTime();
+        if (age > 24 * 60 * 60 * 1000) return;
+      }
+
+      const item = document.createElement("div");
+      item.className = "post";
+
+      const name = document.createElement("b");
+      name.textContent = story.name || "HASSO User";
+
+      const content = document.createElement("p");
+      content.textContent = story.text || "";
+
+      item.append(name, content);
+
+      const image = validUrl(story.imageURL);
+      if (image) {
+        const img = document.createElement("img");
+        img.src = image;
+        img.alt = "Story image";
+        item.appendChild(img);
+      }
+
+      box.appendChild(item);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No recent stories yet.";
+    }
+  }, error => {
+    box.textContent = error.message;
+  });
+}
 <!-- NAVIGATION -->
 <div class="tabs">
 <button data-tab="feed">Feed</button>
