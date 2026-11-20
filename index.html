@@ -1008,6 +1008,14 @@ async function checkAdmin() {
 }
 
 </script>
-
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("HASSO PWA ready"))
+      .catch(error => console.log("PWA error:", error));
+  });
+}
+</script>
 </body>
 </html>
