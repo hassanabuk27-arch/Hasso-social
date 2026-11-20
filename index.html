@@ -932,3 +932,27 @@ $("searchInput").oninput = async () => {
     box.textContent = error.message;
   }
 };
+// VERIFICATION REQUEST
+$("requestVerification").onclick = async () => {
+  const reason = $("verificationReason").value.trim();
+
+  if (!reason) {
+    return notify("Please explain why you want verification.");
+  }
+
+  try {
+    await addDoc(collection(db, "verificationRequests"), {
+      uid: currentUser.uid,
+      name: currentProfile.name,
+      email: currentUser.email,
+      reason,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    $("verificationReason").value = "";
+    notify("Verification request submitted!");
+  } catch (error) {
+    notify(error.message);
+  }
+};
