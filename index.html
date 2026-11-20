@@ -956,3 +956,77 @@ $("requestVerification").onclick = async () => {
     notify(error.message);
   }
 };
+// ADMIN DASHBOARD
+async function loadAdmin() {
+  const box = $("adminContent");
+  box.textContent = "Loading admin dashboard...";
+
+  try {
+    const requests = await getDocs(
+      query(
+        collection(db, "verificationRequests"),
+        orderBy("createdAt", "desc"),
+        limit(100)
+      )
+    );
+
+    box.innerHTML = "";
+
+    requests.forEach(requestDoc => {
+      const data = requestDoc.data();
+      const item = document.createElement("div");
+      item.className = "card";
+
+      const name = document.createElement("h3");
+      name.textContent = data.name || "User";
+
+      const reason = document.createElement("p");
+      reason.textContent = data.reason || "No reason provided";
+
+      const status = document.createElement("p");
+      status.textContent = "Status: " + (data.status || "pending");
+
+      item.append(name, reason, status);
+
+      if (data.status !== "approved") {
+        const approveBtn = document.createElement("button");
+        approveBtn.textContent = "Approve Verification";
+
+        approveBtn.onclick = async () => {
+          try {
+            await updateDoc(
+              doc(db, "users", data.uid),
+              { verified: true }
+            );
+
+            await updateDoc(
+              doc(db, "verificationRequests", requestDoc.id),
+              { status: "approved" }
+            );
+
+            notify("User verified successfully!");
+            loadAdmin();
+          } catch (error) {
+            notify(error.message);
+          }
+        };
+
+        item.appendChild(approveBtn);
+      }
+
+      box.appendChild(item);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No verification requests yet.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+}
+
+// OPEN ADMIN DASHBOARD
+document.querySelector('[data-tab="admin"]').addEventListener(
+  "click",
+  loadAdmin
+);
