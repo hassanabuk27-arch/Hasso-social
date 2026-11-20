@@ -752,3 +752,37 @@ $("peopleSearch").oninput = async () => {
     }
   });
 };
+// LOAD NOTIFICATIONS
+function loadNotifications() {
+  if (stopNotifications) stopNotifications();
+
+  const box = $("notificationList");
+  box.textContent = "Loading notifications...";
+
+  const q = query(
+    collection(db, "users", currentUser.uid, "notifications"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  stopNotifications = onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(notificationDoc => {
+      const data = notificationDoc.data();
+
+      const item = document.createElement("div");
+      item.className = "card";
+
+      item.textContent = data.text || "New notification";
+
+      box.appendChild(item);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No notifications yet.";
+    }
+  }, error => {
+    box.textContent = error.message;
+  });
+}
