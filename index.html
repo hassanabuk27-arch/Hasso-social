@@ -5,1137 +5,1128 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1877f2">
-<link rel="manifest" href="./manifest.json">
 <title>HASSO - Social Network</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f0f2f5;color:#1c1e21}
-header{background:#1877f2;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}
-header h1{font-size:25px}
-nav{display:flex;gap:5px;overflow-x:auto;background:white;padding:10px;position:sticky;top:55px;z-index:19}
-button{background:#1877f2;color:white;border:0;padding:10px 14px;border-radius:8px;margin:3px;cursor:pointer}
-nav button{white-space:nowrap}
-.container{max-width:850px;margin:15px auto;padding:10px}
-.card,.post{background:white;padding:15px;margin-bottom:14px;border-radius:12px;box-shadow:0 1px 4px #ccc}
-input,textarea{width:100%;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:8px;font-size:15px}
-textarea{min-height:85px;resize:vertical}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f0f2f5;color:#222}
+header{background:#1877f2;color:white;padding:15px;position:sticky;top:0;z-index:10}
+header h2{margin:0}
+nav{display:flex;gap:7px;overflow-x:auto;background:white;padding:10px;position:sticky;top:48px;z-index:9}
+nav button{border:0;background:#e4e6eb;padding:10px;border-radius:7px;white-space:nowrap}
+nav button.active{background:#1877f2;color:white}
+main{max-width:750px;margin:15px auto;padding:10px}
+section{display:none}
+section.active{display:block}
+.card{background:white;padding:15px;margin-bottom:12px;border-radius:10px;box-shadow:0 1px 4px #ccc}
+input,textarea{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
+button{cursor:pointer}
+.action{background:#1877f2;color:white;border:0;padding:10px 14px;border-radius:7px;margin:4px}
+.danger{background:#d93025;color:white}
+.muted{color:#777;font-size:13px}
+.post-image{width:100%;max-height:400px;object-fit:cover;border-radius:8px;margin-top:8px}
+.message{background:#e4e6eb;padding:10px;border-radius:10px;margin:7px 0}
+#messageList{max-height:350px;overflow:auto}
 .hidden{display:none!important}
-.profile-photo{width:85px;height:85px;border-radius:50%;object-fit:cover}
-.post img{max-width:100%;border-radius:10px;margin-top:10px}
-.small{font-size:13px;color:#65676b}
-.post-actions{display:flex;flex-wrap:wrap;align-items:center;margin-top:10px}
-.message{background:#e7f3ff;padding:10px;margin:7px;border-radius:10px}
-#messageList{max-height:350px;overflow-y:auto}
-.story-card{display:inline-block;vertical-align:top;width:160px;min-height:130px;margin:5px;padding:12px;background:#e7f3ff;border-radius:12px}
-.status{padding:10px;color:#1877f2}
-@media(max-width:600px){.container{padding:7px}header h1{font-size:22px}}
 </style>
 </head>
 
 <body>
+
 <header>
-  <h1>HASSO</h1>
-  <span id="headerUser">Welcome</span>
+<h2>HASSO</h2>
+<div id="userStatus">Welcome to HASSO</div>
 </header>
 
-<nav id="mainNav" class="hidden">
-  <button data-tab="news">News Feed</button>
-  <button data-tab="stories">Stories</button>
-  <button data-tab="people">People</button>
-  <button data-tab="messages">Messages</button>
-  <button data-tab="notifications">Notifications</button>
-  <button data-tab="search">Search</button>
-  <button data-tab="profile">Profile</button>
-  <button data-tab="verification">Verification</button>
-  <button data-tab="admin">Admin</button>
+<nav id="navigation" class="hidden">
+<button data-tab="feed">News Feed</button>
+<button data-tab="stories">Stories</button>
+<button data-tab="people">People</button>
+<button data-tab="messages">Messages</button>
+<button data-tab="notifications">Notifications</button>
+<button data-tab="search">Search</button>
+<button data-tab="profile">Profile</button>
+<button data-tab="verification">Verification</button>
+<button data-tab="admin">Admin</button>
+<button id="logoutBtn">Logout</button>
 </nav>
 
-<div class="container">
+<main>
 
-<section id="authSection" class="card">
-  <h2>Welcome to HASSO</h2>
-  <p>Create an account or login.</p>
-  <input id="regName" placeholder="Full name">
-  <input id="regEmail" type="email" placeholder="Email address">
-  <input id="regPassword" type="password" placeholder="Password">
-  <button id="registerBtn">Create Account</button>
-  <hr style="margin:15px 0">
-  <input id="loginEmail" type="email" placeholder="Email address">
-  <input id="loginPassword" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <p id="authMessage" class="status"></p>
-</section>
-
-<section id="news" class="tab card hidden">
-  <h2>News Feed</h2>
-  <textarea id="postText" placeholder="What's on your mind?"></textarea>
-  <input id="postImage" placeholder="Image URL (optional)">
-  <button id="publishPost">Publish Post</button>
-  <div id="feedList"></div>
-</section>
-
-<section id="stories" class="tab card hidden">
-  <h2>HASSO Stories</h2>
-  <textarea id="storyText" placeholder="Write your story..."></textarea>
-  <input id="storyImage" placeholder="Story image URL (optional)">
-  <button id="publishStory">Share Story</button>
-  <h3>Recent Stories</h3>
-  <div id="storyList"></div>
-</section>
-
-<section id="people" class="tab card hidden">
-  <h2>People</h2>
-  <input id="peopleSearch" placeholder="Search people...">
-  <div id="peopleList"></div>
-</section>
-
-<section id="messages" class="tab card hidden">
-  <h2>Private Messages</h2>
-  <div id="chatList"></div>
-  <h3 id="chatTitle">Choose a person</h3>
-  <div id="messageList"></div>
-  <textarea id="messageText" placeholder="Write a message..."></textarea>
-  <button id="sendMessage">Send Message</button>
-</section>
-
-<section id="notifications" class="tab card hidden">
-  <h2>Notifications</h2>
-  <div id="notificationList"></div>
-</section>
-
-<section id="search" class="tab card hidden">
-  <h2>Search HASSO</h2>
-  <input id="searchInput" placeholder="Search people and posts...">
-  <div id="searchResults"></div>
-</section>
-
-<section id="profile" class="tab card hidden">
-  <h2>My Profile</h2>
-  <img id="profilePhoto" class="profile-photo"
-       src="https://placehold.co/100x100" alt="Profile">
-  <h3 id="profileName">User</h3>
-  <p id="profileEmail" class="small"></p>
-  <p id="profileStats"></p>
-  <input id="editName" placeholder="Your name">
-  <input id="editPhoto" placeholder="Profile photo URL">
-  <button id="saveProfile">Save Profile</button>
-  <button id="logoutBtn">Logout</button>
-</section>
-
-<section id="verification" class="tab card hidden">
-  <h2>Account Verification</h2>
-  <textarea id="verificationReason" placeholder="Why are you requesting verification?"></textarea>
-  <button id="requestVerification">Submit Request</button>
-</section>
-
-<section id="admin" class="tab card hidden">
-  <h2>HASSO Admin Dashboard</h2>
-  <div id="adminContent"></div>
-</section>
-
+<section id="auth" class="active">
+<div class="card">
+<h2>Login to HASSO</h2>
+<input id="loginEmail" type="email" placeholder="Email">
+<input id="loginPassword" type="password" placeholder="Password">
+<button class="action" id="loginBtn">Login</button>
+<p>Don't have an account? Register below.</p>
 </div>
 
+<div class="card">
+<h2>Create Account</h2>
+<input id="registerName" placeholder="Full name">
+<input id="registerEmail" type="email" placeholder="Email">
+<input id="registerPassword" type="password" placeholder="Password (minimum 6 characters)">
+<button class="action" id="registerBtn">Create Account</button>
+</div>
+</section>
+
+<section id="feed">
+<div class="card">
+<h3>Create a Post</h3>
+<textarea id="postText" placeholder="What's on your mind?"></textarea>
+<input id="postImage" placeholder="Image URL (optional)">
+<button class="action" id="publishPost">Publish Post</button>
+</div>
+<div id="feedList">Loading posts...</div>
+</section>
+
+<section id="stories">
+<div class="card">
+<h3>Create Story</h3>
+<input id="storyText" placeholder="Write something">
+<input id="storyImage" placeholder="Image URL (optional)">
+<button class="action" id="publishStory">Publish Story</button>
+</div>
+<div id="storiesList"></div>
+</section>
+
+<section id="people">
+<div class="card">
+<h3>Find People</h3>
+<input id="peopleSearch" placeholder="Search people...">
+</div>
+<div id="peopleList"></div>
+</section>
+
+<section id="messages">
+<div class="card">
+<h3>Messages</h3>
+<div id="chatList">Your conversations will appear here.</div>
+<hr>
+<h4 id="chatTitle">Choose a conversation</h4>
+<div id="messageList"></div>
+<input id="messageText" placeholder="Write a message">
+<button class="action" id="sendMessage">Send</button>
+</div>
+</section>
+
+<section id="notifications">
+<div class="card">
+<h3>Notifications</h3>
+<div id="notificationsList"></div>
+</div>
+</section>
+
+<section id="search">
+<div class="card">
+<h3>Search HASSO</h3>
+<input id="searchInput" placeholder="Search people and posts...">
+<div id="searchResults"></div>
+</div>
+</section>
+
+<section id="profile">
+<div class="card">
+<h3>My Profile</h3>
+<input id="profileName" placeholder="Your name">
+<input id="profilePhoto" placeholder="Profile photo URL">
+<textarea id="profileBio" placeholder="About you"></textarea>
+<button class="action" id="saveProfile">Save Profile</button>
+<div id="profileStats"></div>
+</div>
+</section>
+
+<section id="verification">
+<div class="card">
+<h3>Get Verified</h3>
+<textarea id="verificationReason" placeholder="Why do you want verification?"></textarea>
+<button class="action" id="requestVerification">Submit Request</button>
+<div id="verificationStatus"></div>
+</div>
+</section>
+
+<section id="admin">
+<div class="card">
+<h3>Admin Dashboard</h3>
+<div id="adminList">Admin information will appear here.</div>
+</div>
+</section>
+
+</main>
+
 <script type="module">
-  
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
+ getAuth,
+ createUserWithEmailAndPassword,
+ signInWithEmailAndPassword,
+ onAuthStateChanged,
+ signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  updateDoc,
-  deleteDoc,
-  where
+ getFirestore,
+ doc,
+ setDoc,
+ getDoc,
+ collection,
+ addDoc,
+ getDocs,
+ query,
+ orderBy,
+ limit,
+ onSnapshot,
+ serverTimestamp,
+ updateDoc,
+ deleteDoc,
+ where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+
 const firebaseConfig = {
-  apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
-  authDomain: "hasso-4bc9e.firebaseapp.com",
-  projectId: "hasso-4bc9e",
-  storageBucket: "hasso-4bc9e.firebasestorage.app",
-  messagingSenderId: "150032029282",
-  appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
+ apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
+ authDomain: "hasso-4bc9e.firebaseapp.com",
+ projectId: "hasso-4bc9e",
+ storageBucket: "hasso-4bc9e.firebasestorage.app",
+ messagingSenderId: "150032029282",
+ appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const ADMIN_UID = "tCML3KjgMMMQY86I3hx1xmdFMNK2";
+
 const $ = id => document.getElementById(id);
 
 let currentUser = null;
 let currentProfile = null;
 let activeChat = null;
-
 let stopFeed = null;
-let stopStories = null;
-let stopNotifications = null;
 let stopMessages = null;
+let stopNotifications = null;
 
-function notify(message) {
-  alert(message);
+
+function notify(message){
+ alert(message);
 }
 
-function validUrl(value) {
-  try {
-    const url = new URL(value);
-    return ["http:", "https:"].includes(url.protocol)
-      ? url.href : "";
-  } catch {
-    return "";
-  }
+function makeCard(){
+ const div = document.createElement("div");
+ div.className = "card";
+ return div;
 }
 
-// NAVIGATION
-function showTab(tabId) {
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.classList.add("hidden");
-  });
+function showTab(tab){
+ document.querySelectorAll("main section").forEach(section=>{
+  section.classList.remove("active");
+ });
 
-  $(tabId).classList.remove("hidden");
+ const selected = $(tab);
+ if(selected) selected.classList.add("active");
 
-  if (tabId === "news") loadFeed();
-  if (tabId === "stories") loadStories();
-  if (tabId === "people") loadPeople();
-  if (tabId === "notifications") loadNotifications();
-  if (tabId === "messages") loadChats();
-  if (tabId === "profile") loadProfileStats();
+ document.querySelectorAll("nav button[data-tab]").forEach(button=>{
+  button.classList.toggle("active",button.dataset.tab === tab);
+ });
+
+ if(!currentUser) return;
+
+ if(tab === "feed") loadFeed();
+ if(tab === "stories") loadStories();
+ if(tab === "people") loadPeople();
+ if(tab === "messages") loadChats();
+ if(tab === "notifications") loadNotifications();
+ if(tab === "profile") loadProfileStats();
+ if(tab === "admin") loadAdmin();
+ if(tab === "verification") loadVerificationStatus();
 }
 
-document.querySelectorAll("#mainNav button").forEach(button => {
-  button.onclick = async () => {
-    const tab = button.dataset.tab;
-
-    if (tab === "admin") {
-      const adminSnap = await getDoc(
-        doc(db, "admins", currentUser.uid)
-      );
-
-      if (!adminSnap.exists() ||
-          adminSnap.data().role !== "admin") {
-        return notify("Admin access only.");
-      }
-    }
-
-    showTab(tab);
-  };
+document.querySelectorAll("nav button[data-tab]").forEach(button=>{
+ button.addEventListener("click",()=>{
+  showTab(button.dataset.tab);
+ });
 });
+
 
 // REGISTER
-$("registerBtn").onclick = async () => {
-  const name = $("regName").value.trim();
-  const email = $("regEmail").value.trim();
-  const password = $("regPassword").value;
 
-  if (!name || !email || !password) {
-    return notify("Please fill in all fields.");
-  }
+$("registerBtn").onclick = async()=>{
+ const name = $("registerName").value.trim();
+ const email = $("registerEmail").value.trim();
+ const password = $("registerPassword").value;
 
-  if (password.length < 6) {
-    return notify("Password must have at least 6 characters.");
-  }
+ if(!name || !email || password.length < 6){
+  return notify("Enter your name, email and password of at least 6 characters.");
+ }
 
-  try {
-    const result = await createUserWithEmailAndPassword(
-      auth, email, password
-    );
+ try{
+  const result = await createUserWithEmailAndPassword(auth,email,password);
 
-    await setDoc(doc(db, "users", result.user.uid), {
-      uid: result.user.uid,
-      name,
-      email,
-      photoURL: "",
-      verified: false,
-      createdAt: serverTimestamp()
-    });
+  await setDoc(doc(db,"users",result.user.uid),{
+   name,
+   email,
+   bio:"",
+   photoURL:"",
+   verified:false,
+   createdAt:serverTimestamp()
+  });
 
-    notify("Welcome to HASSO! Account created.");
-  } catch (error) {
-    notify(error.message);
-  }
+  notify("Account created successfully.");
+ }catch(error){
+  notify(error.message);
+ }
 };
+
 
 // LOGIN
-$("loginBtn").onclick = async () => {
-  try {
-    await signInWithEmailAndPassword(
-      auth,
-      $("loginEmail").value.trim(),
-      $("loginPassword").value
-    );
-  } catch (error) {
-    notify(error.message);
-  }
+
+$("loginBtn").onclick = async()=>{
+ const email = $("loginEmail").value.trim();
+ const password = $("loginPassword").value;
+
+ if(!email || !password){
+  return notify("Enter your email and password.");
+ }
+
+ try{
+  await signInWithEmailAndPassword(auth,email,password);
+ }catch(error){
+  notify(error.message);
+ }
 };
 
-// LOAD PEOPLE
-async function loadPeople() {
-  const box = $("peopleList");
-  box.textContent = "Loading people...";
-
-  try {
-    const users = await getDocs(
-      query(collection(db, "users"), limit(100))
-    );
-
-    box.innerHTML = "";
-
-    users.forEach(userDoc => {
-      const person = userDoc.data();
-      const uid = userDoc.id;
-
-      if (uid === currentUser.uid) return;
-
-      const item = document.createElement("div");
-      item.className = "card";
-
-      const name = document.createElement("b");
-      name.textContent = person.name || "HASSO User";
-
-      const followBtn = document.createElement("button");
-      followBtn.textContent = "Loading...";
-
-      const followingRef = doc(
-        db, "users", currentUser.uid, "following", uid
-      );
-
-      const followerRef = doc(
-        db, "users", uid, "followers", currentUser.uid
-      );
-
-      async function checkFollow() {
-        const snap = await getDoc(followingRef);
-        followBtn.textContent = snap.exists() ? "Unfollow" : "Follow";
-      }
-
-      followBtn.onclick = async () => {
-        followBtn.disabled = true;
-
-        try {
-          const snap = await getDoc(followingRef);
-
-          if (snap.exists()) {
-            await deleteDoc(followingRef);
-            await deleteDoc(followerRef);
-          } else {
-            await setDoc(followingRef, {
-              uid,
-              name: person.name || "HASSO User",
-              createdAt: serverTimestamp()
-            });
-
-            await setDoc(followerRef, {
-              uid: currentUser.uid,
-              name: currentProfile.name,
-              createdAt: serverTimestamp()
-            });
-          }
-
-          await checkFollow();
-        } catch (error) {
-          notify(error.message);
-        }
-
-        followBtn.disabled = false;
-      };
-
-      const messageBtn = document.createElement("button");
-      messageBtn.textContent = "Message";
-
-      messageBtn.onclick = async () => {
-        const ids = [currentUser.uid, uid].sort();
-        const chatId = ids.join("_");
-
-        try {
-          await setDoc(doc(db, "chats", chatId), {
-            participants: ids,
-            participantNames: {
-              [currentUser.uid]: currentProfile.name,
-              [uid]: person.name || "HASSO User"
-            },
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-
-          activeChat = chatId;
-          $("chatTitle").textContent = person.name || "Chat";
-          showTab("messages");
-          loadMessages();
-        } catch (error) {
-          notify(error.message);
-        }
-      };
-
-      item.append(name, followBtn, messageBtn);
-      box.appendChild(item);
-
-      checkFollow();
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No other users found.";
-    }
-  } catch (error) {
-    box.textContent = error.message;
-  }
-}
-
-// SEARCH PEOPLE
-$("peopleSearch").oninput = async () => {
-  const term = $("peopleSearch").value.trim().toLowerCase();
-
-  if (!term) {
-    loadPeople();
-    return;
-  }
-
-  const users = await getDocs(
-    query(collection(db, "users"), limit(100))
-  );
-
-  $("peopleList").innerHTML = "";
-
-  users.forEach(userDoc => {
-    const person = userDoc.data();
-
-    if (
-      userDoc.id !== currentUser.uid &&
-      (person.name || "").toLowerCase().includes(term)
-    ) {
-      const item = document.createElement("div");
-      item.className = "card";
-      item.textContent = person.name || "HASSO User";
-      $("peopleList").appendChild(item);
-    }
-  });
-};
-  
 
 // AUTH STATE
-onAuthStateChanged(auth, async user => {
-  currentUser = user;
 
-  if (user) {
-    try {
-      const snap = await getDoc(doc(db, "users", user.uid));
+onAuthStateChanged(auth,async user=>{
+ currentUser = user;
 
-      if (!snap.exists()) {
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          name: user.email,
-          email: user.email,
-          photoURL: "",
-          verified: false,
-          createdAt: serverTimestamp()
-        });
-      }
+ if(user){
+  try{
+   const profileSnap = await getDoc(doc(db,"users",user.uid));
 
-      await loadProfile();
-
-      $("authSection").classList.add("hidden");
-      $("mainNav").classList.remove("hidden");
-
-      showTab("news");
-    } catch (error) {
-      notify(error.message);
-    }
-  } else {
-    $("authSection").classList.remove("hidden");
-    $("mainNav").classList.add("hidden");
-
-    document.querySelectorAll(".tab").forEach(tab => {
-      tab.classList.add("hidden");
+   if(!profileSnap.exists()){
+    await setDoc(doc(db,"users",user.uid),{
+     name:user.email.split("@")[0],
+     email:user.email,
+     bio:"",
+     photoURL:"",
+     verified:false,
+     createdAt:serverTimestamp()
     });
+    currentProfile = {
+     name:user.email.split("@")[0],
+     email:user.email
+    };
+   }else{
+    currentProfile = profileSnap.data();
+   }
 
-    if (stopFeed) stopFeed();
-    if (stopStories) stopStories();
-    if (stopNotifications) stopNotifications();
-    if (stopMessages) stopMessages();
+   $("auth").classList.add("hidden");
+   $("navigation").classList.remove("hidden");
+   $("userStatus").textContent = "Welcome, " + (currentProfile.name || "HASSO User");
+
+   $("profileName").value = currentProfile.name || "";
+   $("profilePhoto").value = currentProfile.photoURL || "";
+   $("profileBio").value = currentProfile.bio || "";
+
+   showTab("feed");
+
+  }catch(error){
+   notify(error.message);
   }
+ }else{
+  currentProfile = null;
+  activeChat = null;
+
+  $("auth").classList.remove("hidden");
+  $("navigation").classList.add("hidden");
+
+  document.querySelectorAll("main section").forEach(section=>{
+   section.classList.remove("active");
+  });
+
+  $("auth").classList.add("active");
+
+  if(stopFeed) stopFeed();
+  if(stopMessages) stopMessages();
+  if(stopNotifications) stopNotifications();
+ }
 });
 
-// SAVE PROFILE
-$("saveProfile").onclick = async () => {
-  const name = $("editName").value.trim();
-  const photoURL = validUrl($("editPhoto").value.trim());
-
-  if (!name) return notify("Enter your name.");
-
-  try {
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      name,
-      photoURL
-    });
-
-    await loadProfile();
-    notify("Profile saved successfully!");
-  } catch (error) {
-    notify(error.message);
-  }
-};
 
 // LOGOUT
-$("logoutBtn").onclick = async () => {
+
+$("logoutBtn").onclick = async()=>{
+ try{
   await signOut(auth);
+ }catch(error){
+  notify(error.message);
+ }
 };
 
-// PROFILE FOLLOWER STATISTICS
-async function loadProfileStats() {
+
+// SAVE PROFILE
+
+$("saveProfile").onclick = async()=>{
+ if(!currentUser) return;
+
+ const name = $("profileName").value.trim();
+
+ if(!name) return notify("Enter your name.");
+
+ try{
+  await updateDoc(doc(db,"users",currentUser.uid),{
+   name,
+   photoURL:$("profilePhoto").value.trim(),
+   bio:$("profileBio").value.trim()
+  });
+
+  currentProfile.name = name;
+  currentProfile.photoURL = $("profilePhoto").value.trim();
+  currentProfile.bio = $("profileBio").value.trim();
+
+  $("userStatus").textContent = "Welcome, " + name;
+  notify("Profile updated.");
+ }catch(error){
+  notify(error.message);
+ }
+};
+
+
+// PROFILE STATS
+
+async function loadProfileStats(){
+ try{
   const followers = await getDocs(
-    collection(db, "users", currentUser.uid, "followers")
+   collection(db,"users",currentUser.uid,"followers")
   );
 
   const following = await getDocs(
-    collection(db, "users", currentUser.uid, "following")
+   collection(db,"users",currentUser.uid,"following")
   );
 
   $("profileStats").textContent =
-    followers.size + " Followers · " +
-    following.size + " Following";
-  }
-  // PUBLISH POST
-$("publishPost").onclick = async () => {
-  const text = $("postText").value.trim();
-  const imageURL = validUrl($("postImage").value.trim());
+   "Followers: " + followers.size +
+   " | Following: " + following.size;
+ }catch(error){
+  $("profileStats").textContent = error.message;
+ }
+}
 
-  if (!text && !imageURL) {
-    return notify("Write something before publishing.");
-  }
 
-  try {
-    await addDoc(collection(db, "posts"), {
-      uid: currentUser.uid,
-      name: currentProfile.name,
-      text,
-      imageURL,
-      likes: [],
-      createdAt: serverTimestamp()
-    });
+// PUBLISH POST
 
-    $("postText").value = "";
-    $("postImage").value = "";
-    notify("Your post is now published!");
-  } catch (error) {
-    notify(error.message);
-  }
+$("publishPost").onclick = async()=>{
+ const text = $("postText").value.trim();
+ const imageURL = $("postImage").value.trim();
+
+ if(!text && !imageURL) return notify("Write something or add an image.");
+
+ try{
+  await addDoc(collection(db,"posts"),{
+   uid:currentUser.uid,
+   name:currentProfile.name || "HASSO User",
+   text,
+   imageURL,
+   likes:[],
+   createdAt:serverTimestamp()
+  });
+
+  $("postText").value = "";
+  $("postImage").value = "";
+  notify("Post published.");
+ }catch(error){
+  notify(error.message);
+ }
 };
+
 
 // LOAD NEWS FEED
-function loadFeed() {
-  if (stopFeed) stopFeed();
 
-  const box = $("feedList");
-  box.textContent = "Loading News Feed...";
+function loadFeed(){
+ if(stopFeed) stopFeed();
 
-  const q = query(
-    collection(db, "posts"),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
+ const box = $("feedList");
+ box.textContent = "Loading posts...";
 
-  stopFeed = onSnapshot(q, snapshot => {
-    box.innerHTML = "";
+ const q = query(
+  collection(db,"posts"),
+  orderBy("createdAt","desc"),
+  limit(50)
+ );
 
-    snapshot.forEach(postDoc => {
-      const post = postDoc.data();
-      const postId = postDoc.id;
+ stopFeed = onSnapshot(q,snapshot=>{
+  box.innerHTML = "";
 
-      const item = document.createElement("div");
-      item.className = "post";
+  snapshot.forEach(postDoc=>{
+   const post = postDoc.data();
+   const postId = postDoc.id;
 
-      const name = document.createElement("b");
-      name.textContent = post.name || "HASSO User";
+   const card = makeCard();
 
-      const verified = document.createElement("span");
-      verified.textContent = post.verified ? " ✓" : "";
+   const name = document.createElement("b");
+   name.textContent = post.name || "HASSO User";
 
-      const content = document.createElement("p");
-      content.textContent = post.text || "";
+   const text = document.createElement("p");
+   text.textContent = post.text || "";
 
-      item.append(name, verified, content);
+   card.append(name,text);
 
-      const imageURL = validUrl(post.imageURL);
+   if(post.imageURL){
+    const image = document.createElement("img");
+    image.src = post.imageURL;
+    image.className = "post-image";
+    image.alt = "Post image";
+    image.onerror = ()=>image.remove();
+    card.appendChild(image);
+   }
 
-      if (imageURL) {
-        const img = document.createElement("img");
-        img.src = imageURL;
-        img.alt = "Post image";
-        item.appendChild(img);
-      }
+   const likes = Array.isArray(post.likes) ? post.likes : [];
 
-      const actions = document.createElement("div");
-      actions.className = "post-actions";
+   const likeBtn = document.createElement("button");
+   likeBtn.className = "action";
+   likeBtn.textContent =
+    likes.includes(currentUser.uid) ? "Unlike ("+likes.length+")" : "Like ("+likes.length+")";
 
-      const likes = post.likes || [];
-      const liked = likes.includes(currentUser.uid);
+   likeBtn.onclick = async()=>{
+    const updated = likes.includes(currentUser.uid)
+     ? likes.filter(uid=>uid !== currentUser.uid)
+     : [...likes,currentUser.uid];
 
-      const likeBtn = document.createElement("button");
-      likeBtn.textContent = liked ? "Unlike" : "Like";
-
-      likeBtn.onclick = async () => {
-        const updatedLikes = liked
-          ? likes.filter(uid => uid !== currentUser.uid)
-          : [...likes, currentUser.uid];
-
-        await updateDoc(doc(db, "posts", postId), {
-          likes: updatedLikes
-        });
-      };
-
-      const likeCount = document.createElement("span");
-      likeCount.textContent = likes.length + " Likes";
-
-      const commentBtn = document.createElement("button");
-      commentBtn.textContent = "Comment";
-
-      commentBtn.onclick = async () => {
-        const text = prompt("Write your comment:");
-
-        if (!text || !text.trim()) return;
-
-        await addDoc(
-          collection(db, "posts", postId, "comments"),
-          {
-            uid: currentUser.uid,
-            name: currentProfile.name,
-            text: text.trim(),
-            createdAt: serverTimestamp()
-          }
-        );
-
-        notify("Comment added!");
-      };
-
-      const viewBtn = document.createElement("button");
-      viewBtn.textContent = "View Comments";
-
-      const commentsBox = document.createElement("div");
-
-      viewBtn.onclick = async () => {
-        commentsBox.innerHTML = "Loading comments...";
-
-        const comments = await getDocs(
-          query(
-            collection(db, "posts", postId, "comments"),
-            orderBy("createdAt", "asc")
-          )
-        );
-
-        commentsBox.innerHTML = "";
-
-        comments.forEach(commentDoc => {
-          const comment = commentDoc.data();
-          const line = document.createElement("p");
-
-          line.textContent =
-            (comment.name || "User") + ": " +
-            (comment.text || "");
-
-          commentsBox.appendChild(line);
-        });
-
-        if (!commentsBox.children.length) {
-          commentsBox.textContent = "No comments yet.";
-        }
-      };
-
-      actions.append(likeBtn, likeCount, commentBtn, viewBtn);
-      item.append(actions, commentsBox);
-      box.appendChild(item);
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No posts yet. Be the first to post!";
+    try{
+     await updateDoc(doc(db,"posts",postId),{likes:updated});
+    }catch(error){
+     notify(error.message);
     }
-  }, error => {
-    box.textContent = error.message;
-  });
-  }
-  // PUBLISH STORY
-$("publishStory").onclick = async () => {
-  const text = $("storyText").value.trim();
-  const imageURL = validUrl($("storyImage").value.trim());
+   };
 
-  if (!text && !imageURL) {
-    return notify("Write something before sharing.");
-  }
+   const commentInput = document.createElement("input");
+   commentInput.placeholder = "Write a comment...";
 
-  try {
-    await addDoc(collection(db, "stories"), {
-      uid: currentUser.uid,
-      name: currentProfile.name,
-      text,
-      imageURL,
-      createdAt: serverTimestamp()
-    });
+   const commentBtn = document.createElement("button");
+   commentBtn.className = "action";
+   commentBtn.textContent = "Comment";
 
-    $("storyText").value = "";
-    $("storyImage").value = "";
+   const commentsBox = document.createElement("div");
 
-    notify("Story shared successfully!");
-  } catch (error) {
-    notify(error.message);
-  }
-};
+   commentBtn.onclick = async()=>{
+    const comment = commentInput.value.trim();
+    if(!comment) return;
 
-// LOAD STORIES
-function loadStories() {
-  if (stopStories) stopStories();
+    try{
+     await addDoc(collection(db,"posts",postId,"comments"),{
+      uid:currentUser.uid,
+      name:currentProfile.name,
+      text:comment,
+      createdAt:serverTimestamp()
+     });
 
-  const box = $("storyList");
-  box.textContent = "Loading stories...";
-
-  const q = query(
-    collection(db, "stories"),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
-
-  stopStories = onSnapshot(q, snapshot => {
-    box.innerHTML = "";
-
-    snapshot.forEach(storyDoc => {
-      const story = storyDoc.data();
-
-      const item = document.createElement("div");
-      item.className = "story-card";
-
-      const name = document.createElement("b");
-      name.textContent = story.name || "HASSO User";
-
-      const content = document.createElement("p");
-      content.textContent = story.text || "";
-
-      item.append(name, content);
-
-      const imageURL = validUrl(story.imageURL);
-
-      if (imageURL) {
-        const img = document.createElement("img");
-        img.src = imageURL;
-        img.alt = "Story image";
-        img.style.width = "100%";
-        img.style.marginTop = "8px";
-        item.appendChild(img);
-      }
-
-      box.appendChild(item);
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No stories yet.";
+     commentInput.value = "";
+     notify("Comment added.");
+    }catch(error){
+     notify(error.message);
     }
-  }, error => {
-    box.textContent = error.message;
-  });
-}
-// LOAD PEOPLE
-async function loadPeople() {
-  const box = $("peopleList");
-  box.textContent = "Loading people...";
+   };
 
-  try {
-    const users = await getDocs(
-      query(collection(db, "users"), limit(100))
-    );
+   const viewBtn = document.createElement("button");
+   viewBtn.className = "action";
+   viewBtn.textContent = "View Comments";
 
-    box.innerHTML = "";
+   viewBtn.onclick = async()=>{
+    commentsBox.innerHTML = "Loading comments...";
 
-    users.forEach(userDoc => {
-      const person = userDoc.data();
-      const uid = userDoc.id;
-
-      if (uid === currentUser.uid) return;
-
-      const item = document.createElement("div");
-      item.className = "card";
-
-      const name = document.createElement("b");
-      name.textContent = person.name || "HASSO User";
-
-      const followBtn = document.createElement("button");
-      followBtn.textContent = "Loading...";
-
-      const followingRef = doc(
-        db, "users", currentUser.uid, "following", uid
-      );
-
-      const followerRef = doc(
-        db, "users", uid, "followers", currentUser.uid
-      );
-
-      const checkFollow = async () => {
-        const snap = await getDoc(followingRef);
-        followBtn.textContent = snap.exists() ? "Unfollow" : "Follow";
-      };
-
-      followBtn.onclick = async () => {
-        followBtn.disabled = true;
-
-        try {
-          const snap = await getDoc(followingRef);
-
-          if (snap.exists()) {
-            await deleteDoc(followingRef);
-            await deleteDoc(followerRef);
-          } else {
-            await setDoc(followingRef, {
-              uid,
-              name: person.name || "HASSO User",
-              createdAt: serverTimestamp()
-            });
-
-            await setDoc(followerRef, {
-              uid: currentUser.uid,
-              name: currentProfile.name,
-              createdAt: serverTimestamp()
-            });
-
-            await addDoc(
-              collection(db, "users", uid, "notifications"),
-              {
-                text: currentProfile.name + " started following you.",
-                from: currentUser.uid,
-                createdAt: serverTimestamp(),
-                read: false
-              }
-            );
-          }
-
-          await checkFollow();
-        } catch (error) {
-          notify(error.message);
-        }
-
-        followBtn.disabled = false;
-      };
-
-      item.append(name, followBtn);
-      box.appendChild(item);
-
-      checkFollow();
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No other users found.";
-    }
-  } catch (error) {
-    box.textContent = error.message;
-  }
-}
-
-// SEARCH PEOPLE
-$("peopleSearch").oninput = async () => {
-  const search = $("peopleSearch").value.trim().toLowerCase();
-
-  const users = await getDocs(
-    query(collection(db, "users"), limit(100))
-  );
-
-  $("peopleList").innerHTML = "";
-
-  users.forEach(userDoc => {
-    const person = userDoc.data();
-
-    if (
-      userDoc.id !== currentUser.uid &&
-      (person.name || "").toLowerCase().includes(search)
-    ) {
-      const item = document.createElement("div");
-      item.className = "card";
-
-      const name = document.createElement("b");
-      name.textContent = person.name || "HASSO User";
-
-      item.appendChild(name);
-      $("peopleList").appendChild(item);
-    }
-  });
-};
-// LOAD NOTIFICATIONS
-function loadNotifications() {
-  if (stopNotifications) stopNotifications();
-
-  const box = $("notificationList");
-  box.textContent = "Loading notifications...";
-
-  const q = query(
-    collection(db, "users", currentUser.uid, "notifications"),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
-
-  stopNotifications = onSnapshot(q, snapshot => {
-    box.innerHTML = "";
-
-    snapshot.forEach(notificationDoc => {
-      const data = notificationDoc.data();
-
-      const item = document.createElement("div");
-      item.className = "card";
-
-      item.textContent = data.text || "New notification";
-
-      box.appendChild(item);
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No notifications yet.";
-    }
-  }, error => {
-    box.textContent = error.message;
-  });
-}
-// LOAD CHAT LIST
-async function loadChats() {
-  const box = $("chatList");
-  box.textContent = "Loading chats...";
-
-  try {
-    const chats = await getDocs(
+    try{
+     const comments = await getDocs(
       query(
-        collection(db, "chats"),
-        where("participants", "array-contains", currentUser.uid)
+       collection(db,"posts",postId,"comments"),
+       orderBy("createdAt","asc"),
+       limit(30)
       )
-    );
+     );
 
-    box.innerHTML = "";
+     commentsBox.innerHTML = "";
 
-    chats.forEach(chatDoc => {
-      const data = chatDoc.data();
+     comments.forEach(commentDoc=>{
+      const data = commentDoc.data();
+      const p = document.createElement("p");
+      p.textContent = (data.name || "User") + ": " + data.text;
+      commentsBox.appendChild(p);
+     });
 
-      const otherUid = data.participants.find(
-        uid => uid !== currentUser.uid
-      );
-
-      const personName =
-        data.participantNames?.[otherUid] || "HASSO User";
-
-      const button = document.createElement("button");
-      button.textContent = personName;
-
-      button.onclick = () => {
-        activeChat = chatDoc.id;
-        $("chatTitle").textContent = personName;
-        loadMessages();
-      };
-
-      box.appendChild(button);
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No chats yet. Open People to message someone.";
+     if(!commentsBox.children.length){
+      commentsBox.textContent = "No comments yet.";
+     }
+    }catch(error){
+     commentsBox.textContent = error.message;
     }
-  } catch (error) {
-    box.textContent = error.message;
-  }
-}
+   };
 
-// LOAD MESSAGES
-function loadMessages() {
-  if (!activeChat) return;
-
-  if (stopMessages) stopMessages();
-
-  const box = $("messageList");
-  box.textContent = "Loading messages...";
-
-  const q = query(
-    collection(db, "chats", activeChat, "messages"),
-    orderBy("createdAt", "asc"),
-    limit(100)
-  );
-
-  stopMessages = onSnapshot(q, snapshot => {
-    box.innerHTML = "";
-
-    snapshot.forEach(messageDoc => {
-      const data = messageDoc.data();
-
-      const item = document.createElement("div");
-      item.className = "message";
-
-      item.textContent =
-        (data.name || "User") + ": " + (data.text || "");
-
-      box.appendChild(item);
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No messages yet. Start the conversation!";
-    }
-
-    box.scrollTop = box.scrollHeight;
-  }, error => {
-    box.textContent = error.message;
+   card.append(likeBtn,commentInput,commentBtn,viewBtn,commentsBox);
+   box.appendChild(card);
   });
+
+  if(!box.children.length) box.textContent = "No posts yet.";
+
+ },error=>{
+  box.textContent = error.message;
+ });
 }
 
-// SEARCH HASSO
-$("searchInput").oninput = async () => {
-  const term = $("searchInput").value.trim().toLowerCase();
-  const box = $("searchResults");
+
+// STORIES
+
+$("publishStory").onclick = async()=>{
+ const text = $("storyText").value.trim();
+ const imageURL = $("storyImage").value.trim();
+
+ if(!text && !imageURL) return notify("Write something or add an image.");
+
+ try{
+  await addDoc(collection(db,"stories"),{
+   uid:currentUser.uid,
+   name:currentProfile.name,
+   text,
+   imageURL,
+   createdAt:serverTimestamp()
+  });
+
+  $("storyText").value = "";
+  $("storyImage").value = "";
+  notify("Story published.");
+ }catch(error){
+  notify(error.message);
+ }
+};
+
+
+function loadStories(){
+ const box = $("storiesList");
+ box.textContent = "Loading stories...";
+
+ const q = query(
+  collection(db,"stories"),
+  orderBy("createdAt","desc"),
+  limit(50)
+ );
+
+ onSnapshot(q,snapshot=>{
+  box.innerHTML = "";
+
+  snapshot.forEach(storyDoc=>{
+   const story = storyDoc.data();
+   const card = makeCard();
+
+   const name = document.createElement("b");
+   name.textContent = story.name || "HASSO User";
+
+   const text = document.createElement("p");
+   text.textContent = story.text || "";
+
+   card.append(name,text);
+
+   if(story.imageURL){
+    const image = document.createElement("img");
+    image.src = story.imageURL;
+    image.className = "post-image";
+    image.onerror = ()=>image.remove();
+    card.appendChild(image);
+   }
+
+   box.appendChild(card);
+  });
+
+  if(!box.children.length) box.textContent = "No stories yet.";
+ },error=>{
+  box.textContent = error.message;
+ });
+}
+
+
+// FOLLOW / UNFOLLOW
+
+async function followPerson(uid,person){
+ const followingRef = doc(db,"users",currentUser.uid,"following",uid);
+ const followerRef = doc(db,"users",uid,"followers",currentUser.uid);
+
+ const existing = await getDoc(followingRef);
+
+ if(existing.exists()){
+  await deleteDoc(followingRef);
+  await deleteDoc(followerRef);
+  return false;
+ }
+
+ await setDoc(followingRef,{
+  uid,
+  name:person.name || "HASSO User",
+  createdAt:serverTimestamp()
+ });
+
+ await setDoc(followerRef,{
+  uid:currentUser.uid,
+  name:currentProfile.name,
+  createdAt:serverTimestamp()
+ });
+
+ await addDoc(
+  collection(db,"users",uid,"notifications"),
+  {
+   from:currentUser.uid,
+   text:(currentProfile.name || "Someone") + " started following you.",
+   createdAt:serverTimestamp()
+  }
+ );
+
+ return true;
+}
+
+
+// LOAD PEOPLE
+
+async function loadPeople(searchTerm=""){
+ const box = $("peopleList");
+ box.textContent = "Loading people...";
+
+ try{
+  const users = await getDocs(
+   query(collection(db,"users"),limit(100))
+  );
 
   box.innerHTML = "";
 
-  if (!term) return;
+  for(const userDoc of users.docs){
+   const person = userDoc.data();
+   const uid = userDoc.id;
 
-  try {
-    const users = await getDocs(
-      query(collection(db, "users"), limit(100))
-    );
+   if(uid === currentUser.uid) continue;
 
-    users.forEach(userDoc => {
-      const person = userDoc.data();
+   if(searchTerm && !(person.name || "").toLowerCase().includes(searchTerm)){
+    continue;
+   }
 
-      if ((person.name || "").toLowerCase().includes(term)) {
-        const item = document.createElement("div");
-        item.className = "card";
-        item.textContent = "Person: " + person.name;
-        box.appendChild(item);
-      }
-    });
+   const card = makeCard();
 
-    const posts = await getDocs(
-      query(collection(db, "posts"), limit(100))
-    );
+   const name = document.createElement("b");
+   name.textContent = person.name || "HASSO User";
 
-    posts.forEach(postDoc => {
-      const post = postDoc.data();
+   const followBtn = document.createElement("button");
+   followBtn.className = "action";
+   followBtn.textContent = "Loading...";
 
-      if ((post.text || "").toLowerCase().includes(term)) {
-        const item = document.createElement("div");
-        item.className = "card";
-        item.textContent =
-          "Post by " + (post.name || "User") + ": " + post.text;
+   const followingRef = doc(db,"users",currentUser.uid,"following",uid);
+   const following = await getDoc(followingRef);
 
-        box.appendChild(item);
-      }
-    });
+   followBtn.textContent = following.exists() ? "Unfollow" : "Follow";
 
-    if (!box.children.length) {
-      box.textContent = "No results found.";
+   followBtn.onclick = async()=>{
+    followBtn.disabled = true;
+
+    try{
+     const followed = await followPerson(uid,person);
+     followBtn.textContent = followed ? "Unfollow" : "Follow";
+    }catch(error){
+     notify(error.message);
     }
-  } catch (error) {
-    box.textContent = error.message;
+
+    followBtn.disabled = false;
+   };
+
+   const messageBtn = document.createElement("button");
+   messageBtn.className = "action";
+   messageBtn.textContent = "Message";
+
+   messageBtn.onclick = ()=>openChat(uid,person);
+
+   card.append(name,followBtn,messageBtn);
+   box.appendChild(card);
   }
-};
-// VERIFICATION REQUEST
-$("requestVerification").onclick = async () => {
-  const reason = $("verificationReason").value.trim();
 
-  if (!reason) {
-    return notify("Please explain why you want verification.");
-  }
+  if(!box.children.length) box.textContent = "No people found.";
 
-  try {
-    await addDoc(collection(db, "verificationRequests"), {
-      uid: currentUser.uid,
-      name: currentProfile.name,
-      email: currentUser.email,
-      reason,
-      status: "pending",
-      createdAt: serverTimestamp()
-    });
-
-    $("verificationReason").value = "";
-    notify("Verification request submitted!");
-  } catch (error) {
-    notify(error.message);
-  }
-};
-// ADMIN DASHBOARD
-async function loadAdmin() {
-  const box = $("adminContent");
-  box.textContent = "Loading admin dashboard...";
-
-  try {
-    const requests = await getDocs(
-      query(
-        collection(db, "verificationRequests"),
-        orderBy("createdAt", "desc"),
-        limit(100)
-      )
-    );
-
-    box.innerHTML = "";
-
-    requests.forEach(requestDoc => {
-      const data = requestDoc.data();
-      const item = document.createElement("div");
-      item.className = "card";
-
-      const name = document.createElement("h3");
-      name.textContent = data.name || "User";
-
-      const reason = document.createElement("p");
-      reason.textContent = data.reason || "No reason provided";
-
-      const status = document.createElement("p");
-      status.textContent = "Status: " + (data.status || "pending");
-
-      item.append(name, reason, status);
-
-      if (data.status !== "approved") {
-        const approveBtn = document.createElement("button");
-        approveBtn.textContent = "Approve Verification";
-
-        approveBtn.onclick = async () => {
-          try {
-            await updateDoc(
-              doc(db, "users", data.uid),
-              { verified: true }
-            );
-
-            await updateDoc(
-              doc(db, "verificationRequests", requestDoc.id),
-              { status: "approved" }
-            );
-
-            notify("User verified successfully!");
-            loadAdmin();
-          } catch (error) {
-            notify(error.message);
-          }
-        };
-
-        item.appendChild(approveBtn);
-      }
-
-      box.appendChild(item);
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No verification requests yet.";
-    }
-  } catch (error) {
-    box.textContent = error.message;
-  }
+ }catch(error){
+  box.textContent = error.message;
+ }
 }
 
-// OPEN ADMIN DASHBOARD
-document.querySelector('[data-tab="admin"]').addEventListener(
-  "click",
-  loadAdmin
-);
-  alert("HASSO JavaScript is working");
+
+$("peopleSearch").oninput = ()=>{
+ loadPeople($("peopleSearch").value.trim().toLowerCase());
+};
+
+
+// OPEN CHAT
+
+async function openChat(uid,person){
+ const ids = [currentUser.uid,uid].sort();
+ const chatId = ids.join("_");
+
+ try{
+  await setDoc(doc(db,"chats",chatId),{
+   participants:ids,
+   participantNames:{
+    [currentUser.uid]:currentProfile.name,
+    [uid]:person.name || "HASSO User"
+   },
+   updatedAt:serverTimestamp()
+  },{merge:true});
+
+  activeChat = chatId;
+  $("chatTitle").textContent = person.name || "Chat";
+
+  showTab("messages");
+  loadMessages();
+
+ }catch(error){
+  notify(error.message);
+ }
+}
+
+
+// LOAD CHAT LIST
+
+async function loadChats(){
+ const box = $("chatList");
+ box.textContent = "Loading chats...";
+
+ try{
+  const chats = await getDocs(
+   query(
+    collection(db,"chats"),
+    where("participants","array-contains",currentUser.uid)
+   )
+  );
+
+  box.innerHTML = "";
+
+  chats.forEach(chatDoc=>{
+   const data = chatDoc.data();
+
+   const otherUid = data.participants.find(
+    uid=>uid !== currentUser.uid
+   );
+
+   const name = data.participantNames?.[otherUid] || "HASSO User";
+
+   const button = document.createElement("button");
+   button.className = "action";
+   button.textContent = name;
+
+   button.onclick = ()=>{
+    activeChat = chatDoc.id;
+    $("chatTitle").textContent = name;
+    loadMessages();
+   };
+
+   box.appendChild(button);
+  });
+
+  if(!box.children.length){
+   box.textContent = "No chats yet. Open People to message someone.";
+  }
+
+ }catch(error){
+  box.textContent = error.message;
+ }
+}
+
+
+// LOAD MESSAGES
+
+function loadMessages(){
+ if(!activeChat) return;
+
+ if(stopMessages) stopMessages();
+
+ const box = $("messageList");
+ box.textContent = "Loading messages...";
+
+ const q = query(
+  collection(db,"chats",activeChat,"messages"),
+  orderBy("createdAt","asc"),
+  limit(100)
+ );
+
+ stopMessages = onSnapshot(q,snapshot=>{
+  box.innerHTML = "";
+
+  snapshot.forEach(messageDoc=>{
+   const data = messageDoc.data();
+
+   const item = document.createElement("div");
+   item.className = "message";
+   item.textContent = (data.name || "User") + ": " + (data.text || "");
+
+   box.appendChild(item);
+  });
+
+  if(!box.children.length){
+   box.textContent = "No messages yet.";
+  }
+
+  box.scrollTop = box.scrollHeight;
+
+ },error=>{
+  box.textContent = error.message;
+ });
+}
+
+
+// SEND MESSAGE
+
+$("sendMessage").onclick = async()=>{
+ const text = $("messageText").value.trim();
+
+ if(!activeChat) return notify("Choose a person first.");
+ if(!text) return;
+
+ try{
+  await addDoc(
+   collection(db,"chats",activeChat,"messages"),
+   {
+    uid:currentUser.uid,
+    name:currentProfile.name,
+    text,
+    createdAt:serverTimestamp()
+   }
+  );
+
+  await updateDoc(doc(db,"chats",activeChat),{
+   updatedAt:serverTimestamp()
+  });
+
+  $("messageText").value = "";
+
+ }catch(error){
+  notify(error.message);
+ }
+};
+
+
+// NOTIFICATIONS
+
+function loadNotifications(){
+ if(stopNotifications) stopNotifications();
+
+ const box = $("notificationsList");
+ box.textContent = "Loading notifications...";
+
+ const q = query(
+  collection(db,"users",currentUser.uid,"notifications"),
+  orderBy("createdAt","desc"),
+  limit(50)
+ );
+
+ stopNotifications = onSnapshot(q,snapshot=>{
+  box.innerHTML = "";
+
+  snapshot.forEach(notificationDoc=>{
+   const data = notificationDoc.data();
+
+   const item = makeCard();
+   item.textContent = data.text || "New notification";
+
+   box.appendChild(item);
+  });
+
+  if(!box.children.length){
+   box.textContent = "No notifications yet.";
+  }
+
+ },error=>{
+  box.textContent = error.message;
+ });
+}
+
+
+// SEARCH PEOPLE AND POSTS
+
+$("searchInput").oninput = async()=>{
+ const term = $("searchInput").value.trim().toLowerCase();
+ const box = $("searchResults");
+
+ box.innerHTML = "";
+
+ if(!term) return;
+
+ try{
+  const users = await getDocs(
+   query(collection(db,"users"),limit(100))
+  );
+
+  users.forEach(userDoc=>{
+   const person = userDoc.data();
+
+   if((person.name || "").toLowerCase().includes(term)){
+    const item = makeCard();
+    item.textContent = "Person: " + person.name;
+    box.appendChild(item);
+   }
+  });
+
+  const posts = await getDocs(
+   query(collection(db,"posts"),limit(100))
+  );
+
+  posts.forEach(postDoc=>{
+   const post = postDoc.data();
+
+   if((post.text || "").toLowerCase().includes(term)){
+    const item = makeCard();
+    item.textContent = "Post by " + (post.name || "User") + ": " + post.text;
+    box.appendChild(item);
+   }
+  });
+
+  if(!box.children.length){
+   box.textContent = "No results found.";
+  }
+
+ }catch(error){
+  box.textContent = error.message;
+ }
+};
+
+
+// VERIFICATION REQUEST
+
+$("requestVerification").onclick = async()=>{
+ const reason = $("verificationReason").value.trim();
+
+ if(!reason) return notify("Explain why you want verification.");
+
+ try{
+  await addDoc(collection(db,"verificationRequests"),{
+   uid:currentUser.uid,
+   name:currentProfile.name,
+   email:currentUser.email,
+   reason,
+   status:"pending",
+   createdAt:serverTimestamp()
+  });
+
+  $("verificationReason").value = "";
+  notify("Verification request submitted.");
+  loadVerificationStatus();
+
+ }catch(error){
+  notify(error.message);
+ }
+};
+
+
+// VERIFICATION STATUS
+
+async function loadVerificationStatus(){
+ const box = $("verificationStatus");
+
+ try{
+  const requests = await getDocs(
+   query(
+    collection(db,"verificationRequests"),
+    where("uid","==",currentUser.uid),
+    limit(10)
+   )
+  );
+
+  box.innerHTML = "";
+
+  if(requests.empty){
+   box.textContent = "You have not submitted a request yet.";
+   return;
+  }
+
+  requests.forEach(requestDoc=>{
+   const item = makeCard();
+   item.textContent = "Request status: " + requestDoc.data().status;
+   box.appendChild(item);
+  });
+
+ }catch(error){
+  box.textContent = error.message;
+ }
+}
+
+
+// ADMIN DASHBOARD
+
+async function loadAdmin(){
+ const box = $("adminList");
+
+ if(currentUser.uid !== ADMIN_UID){
+  box.textContent = "Access denied. Admin only.";
+  return;
+ }
+
+ box.textContent = "Loading requests...";
+
+ try{
+  const requests = await getDocs(
+   query(
+    collection(db,"verificationRequests"),
+    orderBy("createdAt","desc"),
+    limit(100)
+   )
+  );
+
+  box.innerHTML = "";
+
+  requests.forEach(requestDoc=>{
+   const data = requestDoc.data();
+   const card = makeCard();
+
+   const details = document.createElement("p");
+   details.textContent =
+    (data.name || "User") + " | " +
+    (data.email || "") + " | " +
+    (data.reason || "") + " | Status: " +
+    (data.status || "pending");
+
+   card.appendChild(details);
+
+   if(data.status === "pending"){
+    const approveBtn = document.createElement("button");
+    approveBtn.className = "action";
+    approveBtn.textContent = "Approve Verification";
+
+    approveBtn.onclick = async()=>{
+     try{
+      await updateDoc(doc(db,"users",data.uid),{
+       verified:true
+      });
+
+      await updateDoc(
+       doc(db,"verificationRequests",requestDoc.id),
+       {status:"approved"}
+      );
+
+      notify("User verified.");
+      loadAdmin();
+
+     }catch(error){
+      notify(error.message);
+     }
+    };
+
+    card.appendChild(approveBtn);
+   }
+
+   box.appendChild(card);
+  });
+
+  if(!box.children.length){
+   box.textContent = "No verification requests.";
+  }
+
+ }catch(error){
+  box.textContent = error.message;
+ }
+}
+
 </script>
 </body>
 </html>
