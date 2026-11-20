@@ -450,6 +450,178 @@ function showTab(tabId) {
   if (tabId === "messages") loadChats();
 }
 
+// FOLLOW / UNFOLLOW
+async function followUser(uid) {
+  if (!currentUser || uid === currentUser.uid) return;
+
+  try {
+    const followRef = doc(
+      db, "users", currentUser.uid, "following", uid
+    );
+
+    const followerRef = doc(
+      db, "users", uid, "followers", currentUser.uid
+    );
+
+    const existing = await getDoc(followRef);
+
+    if (existing.exists()) {
+      await deleteDoc(followRef);
+      await deleteDoc(followerRef);
+      showMessage("You unfollowed this user.");
+    } else {
+      await setDoc(followRef, {
+        uid,
+        createdAt: serverTimestamp()
+      });
+
+      await setDoc(followerRef, {
+        uid: currentUser.uid,
+        name: currentProfile.name,
+        createdAt: serverTimestamp()
+      });
+
+      await addDoc(collection(db, "notifications"), {
+        uid,
+        fromUid: currentUser.uid,
+        fromName: currentProfile.name,
+        type: "follow",
+        text: currentProfile.name + " followed you.",
+        createdAt: serverTimestamp(),
+        read: false
+      });
+
+      showMessage("You are now following this user!");
+    }
+
+    loadPeople();
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+// LOAD PEOPLE
+async function loadPeople() {
+  const box = $("peopleList");
+  box.textContent = "Loading people...";
+
+  try {
+    const snapshot = await getDocs(collection(db, "users"));
+    box.innerHTML = "";
+
+    for (const personDoc of snapshot.docs) {
+      const person = personDoc.data();
+      const uid = personDoc.id;
+
+      if (uid === currentUser.uid) continue;
+
+      const following = await getDoc(
+        doc(db, "users", currentUser.uid, "following", uid)
+      );
+
+      const item = document.createElement("div");
+      item.className = "post";
+
+      const name = document.createElement("b");
+      name.textContent = person.name || "HASSO User";
+
+      const followBtn = document.createElement("button");
+      followBtn.textContent = following.exists()
+        ? "Unfollow"
+        : "Follow";
+
+      followBtn.onclick = () => followUser(uid);
+
+      item.append(name, followBtn);
+      box.appendChild(item);
+    }
+
+    if (!box.children.length) {
+      box.textContent = "No other users yet.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+}
+
+// PEOPLE SEARCH
+$("peopleSearch").oninput = async () => {
+  const term = $("peopleSearch").value.trim().toLowerCase();
+  const box = $("peopleList");
+
+  const snapshot = await getDocs(collection(db, "users"));
+  box.innerHTML = "";
+
+  snapshot.forEach(personDoc => {
+    const person = personDoc.data();
+    const uid = personDoc.id;
+
+    if (uid === currentUser.uid) return;
+
+    if ((person.name || "").toLowerCase().includes(term)) {
+      const item = document.createElement("div");
+      item.className = "post";
+
+      const name = document.createElement("b");
+      name.textContent = person.name || "HASSO User";
+
+      const button = document.createElement("button");
+      button.textContent = "Follow";
+      button.onclick = () => followUser(uid);
+
+      item.append(name, button);
+      box.appendChild(item);
+    }
+  });
+
+  if (!box.children.length) {
+    box.textContent = "No users found.";
+  }
+};
+
+// NOTIFICATIONS
+function loadNotifications() {
+  if (stopNotifications) stopNotifications();
+
+  const box = $("notificationList");
+  box.textContent = "Loading notifications...";
+
+  const q = query(
+    collection(db, "notifications"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+
+  stopNotifications = onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(notificationDoc => {
+      const data = notificationDoc.data();
+
+      if (data.uid !== currentUser.uid) return;
+
+      const item = document.createElement("div");
+      item.className = "post";
+      item.textContent = data.text || "New notification";
+
+      box.appendChild(item);
+
+      if (!data.read) {
+        updateDoc(
+          doc(db, "notifications", notificationDoc.id),
+          { read: true }
+        ).catch(error => console.error(error));
+      }
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No notifications yet.";
+    }
+  }, error => {
+    box.textContent = error.message;
+  });
+      }
+      
 </script>
 </body>
 </html>
