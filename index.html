@@ -729,6 +729,156 @@ $("sendMessage").onclick = async () => {
   }
 };
     
+// SEARCH PEOPLE AND POSTS
+$("searchInput").oninput = async () => {
+  const term = $("searchInput").value.trim().toLowerCase();
+  const box = $("searchResults");
+
+  box.innerHTML = "Searching...";
+
+  try {
+    const [users, posts] = await Promise.all([
+      getDocs(collection(db, "users")),
+      getDocs(collection(db, "posts"))
+    ]);
+
+    box.innerHTML = "";
+
+    users.forEach(userDoc => {
+      const user = userDoc.data();
+
+      if ((user.name || "").toLowerCase().includes(term)) {
+        const item = document.createElement("div");
+        item.className = "post";
+        item.textContent = "User: " + user.name;
+        box.appendChild(item);
+      }
+    });
+
+    posts.forEach(postDoc => {
+      const post = postDoc.data();
+
+      if ((post.text || "").toLowerCase().includes(term)) {
+        const item = document.createElement("div");
+        item.className = "post";
+        item.textContent = "Post: " + post.text;
+        box.appendChild(item);
+      }
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No results found.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+};
+
+// VERIFICATION REQUEST
+$("requestVerification").onclick = async () => {
+  const reason = $("verificationReason").value.trim();
+
+  if (!reason) {
+    return showMessage("Please explain why you are requesting verification.");
+  }
+
+  try {
+    await addDoc(collection(db, "verificationRequests"), {
+      uid: currentUser.uid,
+      name: currentProfile.name,
+      reason,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    $("verificationReason").value = "";
+    showMessage("Verification request submitted!");
+  } catch (error) {
+    showMessage(error.message);
+  }
+};
+
+// CHECK ADMIN
+async function checkAdmin() {
+  const box = $("adminContent");
+
+  const adminSnap = await getDoc(
+    doc(db, "admins", currentUser.uid)
+  );
+
+  if (!adminSnap.exists() ||
+      adminSnap.data().role !== "admin") {
+    $("admin").classList.add("hidden");
+    return;
+  }
+
+  $("admin").classList.remove("hidden");
+  box.innerHTML = "<h3>Admin Dashboard</h3><p>Loading requests...</p>";
+
+  const requests = await getDocs(
+    collection(db, "verificationRequests")
+  );
+
+  box.innerHTML = "";
+
+  requests.forEach(requestDoc => {
+    const request = requestDoc.data();
+
+    const item = document.createElement("div");
+    item.className = "post";
+
+    const name = document.createElement("b");
+    name.textContent = request.name || "User";
+
+    const reason = document.createElement("p");
+    reason.textContent = request.reason || "";
+
+    const status = document.createElement("p");
+    status.textContent = "Status: " + (request.status || "pending");
+
+    const approve = document.createElement("button");
+    approve.textContent = "Approve";
+
+    approve.onclick = async () => {
+      await updateDoc(
+        doc(db, "verificationRequests", requestDoc.id),
+        { status: "approved" }
+      );
+
+      await updateDoc(
+        doc(db, "users", request.uid),
+        { verified: true }
+      );
+
+      showMessage("User verified!");
+      checkAdmin();
+    };
+
+    const reject = document.createElement("button");
+    reject.textContent = "Reject";
+
+    reject.onclick = async () => {
+      await updateDoc(
+        doc(db, "verificationRequests", requestDoc.id),
+        { status: "rejected" }
+      );
+
+      showMessage("Request rejected.");
+      checkAdmin();
+    };
+
+    item.append(name, reason, status, approve, reject);
+    box.appendChild(item);
+  });
+
+  if (!box.children.length) {
+    box.textContent = "No verification requests.";
+  }
+}
+
+// START ADMIN CHECK AFTER LOGIN
+const previousAuthCheck = onAuthStateChanged;
+  
 </script>
 </body>
 </html>
