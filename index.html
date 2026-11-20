@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="ha">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,27 +8,28 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f0f2f5;color:#1c1e21;font-family:Arial,sans-serif}
-header{background:#1877f2;color:white;padding:15px;text-align:center;font-size:26px;font-weight:bold;position:sticky;top:0;z-index:5}
-main{max-width:650px;margin:18px auto;padding:10px}
-.card{background:white;border-radius:13px;padding:16px;margin-bottom:15px;box-shadow:0 2px 8px #00000012}
+header{background:#1877f2;color:white;padding:16px;text-align:center;font-size:26px;font-weight:bold;position:sticky;top:0;z-index:5}
+main{max-width:680px;margin:18px auto;padding:10px}
+.card{background:white;border-radius:13px;padding:16px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
 input,textarea{width:100%;padding:12px;border:1px solid #ccd0d5;border-radius:9px;margin:7px 0;font-size:15px}
-textarea{resize:vertical}
 button{border:0;border-radius:8px;padding:11px 15px;background:#1877f2;color:white;font-weight:bold;cursor:pointer;margin:4px 3px 4px 0}
 button:disabled{opacity:.5}
 .gray{background:#606770}
-.red{background:#d93025}
 .hidden{display:none!important}
-#message,#postMessage{color:#d93025;font-size:14px}
-.avatar{width:75px;height:75px;border-radius:50%;object-fit:cover;background:#ddd}
+.avatar{width:65px;height:65px;border-radius:50%;object-fit:cover;background:#ddd}
+.postHead,.userRow{display:flex;align-items:center;gap:10px}
+.postHead .avatar,.userRow .avatar{width:45px;height:45px}
+.post{border-bottom:1px solid #ddd;padding:14px 0}
 .postImage{width:100%;max-height:450px;object-fit:contain;border-radius:10px;margin-top:10px;background:#eee}
-.post{border-bottom:1px solid #ddd;padding:12px 0}
-.postHead{display:flex;align-items:center;gap:10px}
-.postHead .avatar{width:42px;height:42px}
 .postText{white-space:pre-wrap;overflow-wrap:anywhere}
-.comment{background:#f0f2f5;padding:9px;border-radius:10px;margin:6px 0;font-size:14px}
 .small{font-size:12px;color:#65676b}
+.comment{background:#f0f2f5;padding:9px;border-radius:10px;margin:6px 0;font-size:14px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
-label{font-size:13px;font-weight:bold}
+#message,#postMessage{color:#d93025;font-size:14px}
+.stats{display:flex;gap:20px;margin:12px 0;font-size:14px}
+.userRow{padding:10px 0;border-bottom:1px solid #eee}
+.userInfo{flex:1;min-width:0}
+.userInfo strong{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -38,7 +39,7 @@ label{font-size:13px;font-weight:bold}
 <section id="authSection" class="card">
 <h2>Welcome to HASSO</h2>
 <p>Connect. Share. Belong.</p>
-<input id="nameInput" placeholder="Your name (for new account)">
+<input id="nameInput" placeholder="Your name (new account)">
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password">
 <button id="loginBtn">Login</button>
@@ -47,14 +48,21 @@ label{font-size:13px;font-weight:bold}
 </section>
 
 <section id="appSection" class="hidden">
+
 <div class="card">
 <div class="postHead">
-<img id="myAvatar" class="avatar" alt="Profile photo">
+<img id="myAvatar" class="avatar" alt="Profile">
 <div>
 <strong id="myName">HASSO User</strong>
 <div class="small" id="myEmail"></div>
 </div>
 </div>
+
+<div class="stats">
+<span><strong id="myFollowers">0</strong> Followers</span>
+<span><strong id="myFollowing">0</strong> Following</span>
+</div>
+
 <hr>
 <label>Change profile photo</label>
 <input id="avatarFile" type="file" accept="image/*">
@@ -66,7 +74,13 @@ label{font-size:13px;font-weight:bold}
 </div>
 
 <div class="card">
-<h3>Create a post</h3>
+<h3>Find People</h3>
+<p class="small">Discover and follow other HASSO users.</p>
+<div id="peopleList">Loading people...</div>
+</div>
+
+<div class="card">
+<h3>Create a Post</h3>
 <textarea id="postText" rows="3" placeholder="What's on your mind?"></textarea>
 <label>Add a photo (optional)</label>
 <input id="postFile" type="file" accept="image/*">
@@ -78,19 +92,23 @@ label{font-size:13px;font-weight:bold}
 <h3>News Feed</h3>
 <div id="feed">Loading posts...</div>
 </div>
+
 </section>
 </main>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
  getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,
  onAuthStateChanged,signOut,updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import {
  getFirestore,collection,doc,setDoc,getDoc,addDoc,query,
- orderBy,onSnapshot,serverTimestamp
+ orderBy,onSnapshot,serverTimestamp,getDocs,deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 import {
  getStorage,ref,uploadBytes,getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -109,16 +127,19 @@ const auth=getAuth(app);
 const db=getFirestore(app);
 const storage=getStorage(app);
 const $=id=>document.getElementById(id);
-let stopFeed=null;
+
 let currentProfile={};
+let stopFeed=null;
+let stopPeople=null;
+let stopMyFollowers=null;
+let stopMyFollowing=null;
 
 function say(id,text){$(id).textContent=text;}
-function safeImage(url){
- return url || "https://www.gravatar.com/avatar/?d=mp";
-}
+function safeImage(url){return url||"https://www.gravatar.com/avatar/?d=mp";}
+
 async function uploadImage(file,path){
  if(!file)return "";
- if(!file.type.startsWith("image/"))throw new Error("Please choose an image.");
+ if(!file.type.startsWith("image/"))throw new Error("Choose an image file.");
  if(file.size>5*1024*1024)throw new Error("Image must be smaller than 5MB.");
  const imageRef=ref(storage,path);
  await uploadBytes(imageRef,file);
@@ -126,9 +147,9 @@ async function uploadImage(file,path){
 }
 
 $("loginBtn").onclick=async()=>{
- say("message","");
  const email=$("email").value.trim();
  const password=$("password").value;
+ say("message","");
  if(!email||!password){say("message","Enter your email and password.");return;}
  $("loginBtn").disabled=true;
  try{await signInWithEmailAndPassword(auth,email,password);}
@@ -137,10 +158,10 @@ $("loginBtn").onclick=async()=>{
 };
 
 $("registerBtn").onclick=async()=>{
- say("message","");
  const name=$("nameInput").value.trim();
  const email=$("email").value.trim();
  const password=$("password").value;
+ say("message","");
  if(!name||!email||!password){say("message","Enter your name, email and password.");return;}
  if(password.length<6){say("message","Password must be at least 6 characters.");return;}
  $("registerBtn").disabled=true;
@@ -156,34 +177,44 @@ $("registerBtn").onclick=async()=>{
 
 $("logoutBtn").onclick=()=>signOut(auth);
 
+function stopListeners(){
+ [stopFeed,stopPeople,stopMyFollowers,stopMyFollowing].forEach(fn=>{if(fn)fn();});
+ stopFeed=stopPeople=stopMyFollowers=stopMyFollowing=null;
+}
+
 onAuthStateChanged(auth,async user=>{
- if(stopFeed){stopFeed();stopFeed=null;}
+ stopListeners();
  if(!user){
   $("authSection").classList.remove("hidden");
   $("appSection").classList.add("hidden");
   return;
  }
+
  $("authSection").classList.add("hidden");
  $("appSection").classList.remove("hidden");
+
  try{
   const userRef=doc(db,"users",user.uid);
   const snap=await getDoc(userRef);
+
   if(snap.exists())currentProfile=snap.data();
   else{
-   currentProfile={name:user.displayName||"HASSO User",photoURL:"",email:user.email};
+   currentProfile={name:user.displayName||"HASSO User",photoURL:user.photoURL||"",email:user.email};
    await setDoc(userRef,currentProfile);
   }
+
   showProfile(user);
+  watchMyStats(user.uid);
+  loadPeople(user.uid);
   loadFeed();
- }catch(e){say("profileMessage","Profile error: "+e.message);}
+ }catch(e){say("profileMessage","Error: "+e.message);}
 });
 
 function showProfile(user){
- const name=currentProfile.name||user.displayName||"HASSO User";
- $("myName").textContent=name;
+ $("myName").textContent=currentProfile.name||user.displayName||"HASSO User";
  $("myEmail").textContent=user.email||"";
- $("newName").value=name;
- $("myAvatar").src=safeImage(currentProfile.photoURL);
+ $("myAvatar").src=safeImage(currentProfile.photoURL||user.photoURL);
+ $("newName").value=currentProfile.name||user.displayName||"";
 }
 
 $("saveProfileBtn").onclick=async()=>{
@@ -196,17 +227,100 @@ $("saveProfileBtn").onclick=async()=>{
   let photoURL=currentProfile.photoURL||"";
   const file=$("avatarFile").files[0];
   if(file)photoURL=await uploadImage(file,`profiles/${user.uid}/avatar`);
+
   await updateProfile(user,{displayName:name,photoURL});
   await setDoc(doc(db,"users",user.uid),{
    name,photoURL,email:user.email,updatedAt:serverTimestamp()
   },{merge:true});
+
   currentProfile={...currentProfile,name,photoURL};
   showProfile(user);
   $("avatarFile").value="";
-  say("profileMessage","Profile updated successfully!");
+  say("profileMessage","Profile updated!");
  }catch(e){say("profileMessage",e.message);}
  finally{$("saveProfileBtn").disabled=false;}
 };
+
+function watchMyStats(uid){
+ stopMyFollowers=onSnapshot(collection(db,"users",uid,"followers"),s=>{
+  $("myFollowers").textContent=s.size;
+ });
+ stopMyFollowing=onSnapshot(collection(db,"users",uid,"following"),s=>{
+  $("myFollowing").textContent=s.size;
+ });
+}
+
+function loadPeople(myUid){
+ stopPeople=onSnapshot(collection(db,"users"),async snapshot=>{
+  const box=$("peopleList");
+  box.innerHTML="";
+  const users=snapshot.docs.filter(d=>d.id!==myUid);
+
+  if(!users.length){
+   box.textContent="No other users yet.";
+   return;
+  }
+
+  for(const person of users){
+   const data=person.data();
+   const row=document.createElement("div");
+   row.className="userRow";
+
+   const avatar=document.createElement("img");
+   avatar.className="avatar";
+   avatar.src=safeImage(data.photoURL);
+
+   const info=document.createElement("div");
+   info.className="userInfo";
+   const name=document.createElement("strong");
+   name.textContent=data.name||"HASSO User";
+   const email=document.createElement("div");
+   email.className="small";
+   email.textContent=data.email||"";
+   info.append(name,email);
+
+   const button=document.createElement("button");
+   button.textContent="Loading...";
+   button.disabled=true;
+
+   row.append(avatar,info,button);
+   box.append(row);
+
+   const followingRef=doc(db,"users",myUid,"following",person.id);
+   const followingSnap=await getDoc(followingRef);
+
+   button.disabled=false;
+   button.textContent=followingSnap.exists()?"Following":"Follow";
+   if(followingSnap.exists())button.className="gray";
+
+   button.onclick=async()=>{
+    button.disabled=true;
+    try{
+     const current=await getDoc(followingRef);
+     const followerRef=doc(db,"users",person.id,"followers",myUid);
+
+     if(current.exists()){
+      await deleteDoc(followingRef);
+      await deleteDoc(followerRef);
+      button.textContent="Follow";
+      button.className="";
+     }else{
+      await setDoc(followingRef,{
+       uid:person.id,createdAt:serverTimestamp()
+      });
+      await setDoc(followerRef,{
+       uid:myUid,createdAt:serverTimestamp()
+      });
+      button.textContent="Following";
+      button.className="gray";
+     }
+    }catch(e){
+     alert("Follow error: "+e.message);
+    }finally{button.disabled=false;}
+   };
+  }
+ },error=>{$("peopleList").textContent="People error: "+error.message;});
+}
 
 $("postBtn").onclick=async()=>{
  const user=auth.currentUser;
@@ -214,20 +328,23 @@ $("postBtn").onclick=async()=>{
  const file=$("postFile").files[0];
  if(!user)return;
  if(!text&&!file){say("postMessage","Write something or choose a photo.");return;}
+
  $("postBtn").disabled=true;
+ say("postMessage","Publishing...");
  try{
   let imageURL="";
   if(file)imageURL=await uploadImage(file,`posts/${user.uid}/${Date.now()}`);
+
   await addDoc(collection(db,"posts"),{
    ownerId:user.uid,
    authorName:currentProfile.name||user.displayName||"HASSO User",
    authorPhoto:currentProfile.photoURL||"",
-   text,imageURL,
-   createdAt:serverTimestamp()
+   text,imageURL,createdAt:serverTimestamp()
   });
+
   $("postText").value="";
   $("postFile").value="";
-  say("postMessage","Your post has been published!");
+  say("postMessage","Post published!");
  }catch(e){say("postMessage",e.message);}
  finally{$("postBtn").disabled=false;}
 };
@@ -237,15 +354,16 @@ function loadFeed(){
  stopFeed=onSnapshot(q,snapshot=>{
   const feed=$("feed");
   feed.innerHTML="";
-  if(snapshot.empty){feed.textContent="No posts yet. Be the first to post!";return;}
-  snapshot.forEach(postDoc=>renderPost(postDoc.id,postDoc.data(),feed));
+  if(snapshot.empty){feed.textContent="No posts yet. Be the first!";return;}
+  snapshot.forEach(p=>renderPost(p.id,p.data(),feed));
  },error=>{$("feed").textContent="Feed error: "+error.message;});
 }
 
-async function renderPost(postId,data,feed){
+function renderPost(postId,data,feed){
  const user=auth.currentUser;
  const wrap=document.createElement("article");
  wrap.className="post";
+
  const head=document.createElement("div");
  head.className="postHead";
  const avatar=document.createElement("img");
@@ -262,6 +380,7 @@ async function renderPost(postId,data,feed){
   p.textContent=data.text;
   wrap.append(p);
  }
+
  if(data.imageURL){
   const img=document.createElement("img");
   img.className="postImage";
@@ -279,38 +398,33 @@ async function renderPost(postId,data,feed){
  const likesRef=collection(db,"posts",postId,"likes");
  const myLike=doc(db,"posts",postId,"likes",user.uid);
 
- async function refreshLikes(){
-  const {getDocs}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  const likes=await getDocs(likesRef);
-  likeCount.textContent=likes.size+" likes";
-  likeBtn.textContent=likes.docs.some(d=>d.id===user.uid)?"Unlike":"Like";
- }
+ const stopLikes=onSnapshot(likesRef,s=>{
+  likeCount.textContent=s.size+" likes";
+  likeBtn.textContent=s.docs.some(d=>d.id===user.uid)?"Unlike":"Like";
+ });
+
  likeBtn.onclick=async()=>{
   likeBtn.disabled=true;
   try{
    const existing=await getDoc(myLike);
-   if(existing.exists()){
-    const {deleteDoc}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    await deleteDoc(myLike);
-   }else{
-    await setDoc(myLike,{uid:user.uid,createdAt:serverTimestamp()});
-   }
-   await refreshLikes();
+   if(existing.exists())await deleteDoc(myLike);
+   else await setDoc(myLike,{uid:user.uid,createdAt:serverTimestamp()});
   }catch(e){alert("Like error: "+e.message);}
   finally{likeBtn.disabled=false;}
  };
  actions.append(likeBtn,likeCount);
  wrap.append(actions);
 
- const commentsBox=document.createElement("div");
  const commentsList=document.createElement("div");
  const commentInput=document.createElement("input");
  commentInput.placeholder="Write a comment...";
  const commentBtn=document.createElement("button");
  commentBtn.textContent="Comment";
+
  const commentsRef=collection(db,"posts",postId,"comments");
  const commentsQuery=query(commentsRef,orderBy("createdAt","asc"));
- onSnapshot(commentsQuery,comments=>{
+
+ const stopComments=onSnapshot(commentsQuery,comments=>{
   commentsList.innerHTML="";
   comments.forEach(c=>{
    const item=document.createElement("div");
@@ -323,6 +437,7 @@ async function renderPost(postId,data,feed){
    commentsList.append(item);
   });
  });
+
  commentBtn.onclick=async()=>{
   const text=commentInput.value.trim();
   if(!text)return;
@@ -337,10 +452,9 @@ async function renderPost(postId,data,feed){
   }catch(e){alert("Comment error: "+e.message);}
   finally{commentBtn.disabled=false;}
  };
- commentsBox.append(commentsList,commentInput,commentBtn);
- wrap.append(commentsBox);
+
+ wrap.append(commentsList,commentInput,commentBtn);
  feed.append(wrap);
- refreshLikes().catch(()=>{});
 }
 </script>
 </body>
