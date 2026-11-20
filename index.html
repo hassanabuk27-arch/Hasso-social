@@ -786,3 +786,100 @@ function loadNotifications() {
     box.textContent = error.message;
   });
 }
+// LOAD CHAT LIST
+async function loadChats() {
+  const box = $("chatList");
+  box.innerHTML = "Loading chats...";
+
+  try {
+    const chats = await getDocs(
+      collection(db, "users", currentUser.uid, "chats")
+    );
+
+    box.innerHTML = "";
+
+    chats.forEach(chatDoc => {
+      const data = chatDoc.data();
+
+      const button = document.createElement("button");
+      button.textContent = data.name || "HASSO User";
+
+      button.onclick = () => {
+        activeChat = chatDoc.id;
+        $("chatTitle").textContent = data.name || "Chat";
+        loadMessages();
+      };
+
+      box.appendChild(button);
+    });
+
+    if (!box.children.length) {
+      box.textContent = "No chats yet. Open People to connect.";
+    }
+  } catch (error) {
+    box.textContent = error.message;
+  }
+}
+
+// OPEN MESSAGES
+function loadMessages() {
+  if (!activeChat) return;
+
+  if (stopMessages) stopMessages();
+
+  const box = $("messageList");
+  box.textContent = "Loading messages...";
+
+  const q = query(
+    collection(db, "users", currentUser.uid, "chats", activeChat, "messages"),
+    orderBy("createdAt", "asc"),
+    limit(100)
+  );
+
+  stopMessages = onSnapshot(q, snapshot => {
+    box.innerHTML = "";
+
+    snapshot.forEach(messageDoc => {
+      const data = messageDoc.data();
+
+      const item = document.createElement("div");
+      item.className = "message";
+
+      item.textContent =
+        (data.name || "User") + ": " + (data.text || "");
+
+      box.appendChild(item);
+    });
+
+    box.scrollTop = box.scrollHeight;
+  }, error => {
+    box.textContent = error.message;
+  });
+}
+
+// SEND MESSAGE
+$("sendMessage").onclick = async () => {
+  const text = $("messageText").value.trim();
+
+  if (!activeChat) {
+    return notify("Choose a person first.");
+  }
+
+  if (!text) return;
+
+  try {
+    await addDoc(
+      collection(db, "users", currentUser.uid, "chats", activeChat, "messages"),
+      {
+        uid: currentUser.uid,
+        name: currentProfile.name,
+        text,
+        createdAt: serverTimestamp()
+      }
+    );
+
+    $("messageText").value = "";
+  } catch (error) {
+    notify(error.message);
+  }
+};
