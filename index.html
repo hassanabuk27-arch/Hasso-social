@@ -77,6 +77,7 @@ main{margin:8px auto;padding:8px}
 <!-- NAVIGATION -->
 <div class="tabs">
 <button data-tab="feed">Feed</button>
+<button data-tab="stories">Stories</button>
 <button data-tab="people">People</button>
 <button data-tab="search">Search</button>
 <button data-tab="notifications">Notifications</button>
@@ -92,7 +93,19 @@ main{margin:8px auto;padding:8px}
 <button id="publishPost">Publish Post</button>
 <div id="feedList"></div>
 </section>
+<!-- HASSO STORIES -->
+<section id="stories" class="tab hidden">
+  <h2>HASSO Stories</h2>
 
+  <textarea id="storyText" placeholder="Write your story..."></textarea>
+
+  <input id="storyImage" placeholder="Story image URL (optional)">
+
+  <button id="publishStory">Share Story</button>
+
+  <h3>Recent Stories</h3>
+  <div id="storyList"></div>
+</section>
 <!-- PEOPLE -->
 <section id="people" class="tab hidden">
 <h2>Find People</h2>
