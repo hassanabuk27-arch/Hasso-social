@@ -5,217 +5,76 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1877f2">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="./manifest.json">
 <title>HASSO - Social Network</title>
 
 <style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: Arial, sans-serif;
-  background: #f0f2f5;
-  color: #1c1e21;
-}
-
-header {
-  background: #1877f2;
-  color: white;
-  padding: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-header h1 {
-  font-size: 25px;
-}
-
-.container {
-  max-width: 850px;
-  margin: 15px auto;
-  padding: 10px;
-}
-
-.card, .post {
-  background: white;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px #ccc;
-}
-
-input, textarea {
-  width: 100%;
-  padding: 12px;
-  margin: 7px 0;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
-}
-
-textarea {
-  min-height: 85px;
-  resize: vertical;
-}
-
-button {
-  background: #1877f2;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin: 4px;
-}
-
-button:hover {
-  opacity: .85;
-}
-
-.hidden {
-  display: none !important;
-}
-
-nav {
-  display: flex;
-  gap: 5px;
-  overflow-x: auto;
-  background: white;
-  padding: 10px;
-  position: sticky;
-  top: 55px;
-  z-index: 9;
-}
-
-nav button {
-  white-space: nowrap;
-}
-
-.profile-photo {
-  width: 75px;
-  height: 75px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.post img {
-  max-width: 100%;
-  border-radius: 10px;
-  margin-top: 10px;
-}
-
-.post-actions {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.small {
-  color: #65676b;
-  font-size: 13px;
-}
-
-#messageList {
-  max-height: 350px;
-  overflow-y: auto;
-}
-
-.message {
-  background: #e7f3ff;
-  padding: 10px;
-  margin: 7px;
-  border-radius: 10px;
-}
-
-@media(max-width:600px) {
-  .container {
-    margin: 5px auto;
-    padding: 7px;
-  }
-
-  header h1 {
-    font-size: 22px;
-  }
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f2f5;color:#1c1e21}
+header{background:#1877f2;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}
+header h1{font-size:25px}
+nav{display:flex;gap:5px;overflow-x:auto;background:white;padding:10px;position:sticky;top:55px;z-index:19}
+button{background:#1877f2;color:white;border:0;padding:10px 14px;border-radius:8px;margin:3px;cursor:pointer}
+nav button{white-space:nowrap}
+.container{max-width:850px;margin:15px auto;padding:10px}
+.card,.post{background:white;padding:15px;margin-bottom:14px;border-radius:12px;box-shadow:0 1px 4px #ccc}
+input,textarea{width:100%;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:8px;font-size:15px}
+textarea{min-height:85px;resize:vertical}
+.hidden{display:none!important}
+.profile-photo{width:85px;height:85px;border-radius:50%;object-fit:cover}
+.post img{max-width:100%;border-radius:10px;margin-top:10px}
+.small{font-size:13px;color:#65676b}
+.post-actions{display:flex;flex-wrap:wrap;align-items:center;margin-top:10px}
+.message{background:#e7f3ff;padding:10px;margin:7px;border-radius:10px}
+#messageList{max-height:350px;overflow-y:auto}
+.story-card{display:inline-block;vertical-align:top;width:160px;min-height:130px;margin:5px;padding:12px;background:#e7f3ff;border-radius:12px}
+.status{padding:10px;color:#1877f2}
+@media(max-width:600px){.container{padding:7px}header h1{font-size:22px}}
 </style>
 </head>
 
 <body>
-
-<nav id="mainNav" class="hidden">
-  <button data-tab="profile">Profile</button>
-  <button data-tab="feed">Home</button>
-  <button data-tab="stories">Stories</button>
-  <button data-tab="people">People</button>
-  <button data-tab="notifications">Notifications</button>
-  <button data-tab="messages">Messages</button>
-  <button data-tab="search">Search</button>
-  <button data-tab="verification">Verify</button>
-  <button data-tab="admin">Admin</button>
-</nav>
-  
 <header>
   <h1>HASSO</h1>
   <span id="headerUser">Welcome</span>
 </header>
 
+<nav id="mainNav" class="hidden">
+  <button data-tab="news">News Feed</button>
+  <button data-tab="stories">Stories</button>
+  <button data-tab="people">People</button>
+  <button data-tab="messages">Messages</button>
+  <button data-tab="notifications">Notifications</button>
+  <button data-tab="search">Search</button>
+  <button data-tab="profile">Profile</button>
+  <button data-tab="verification">Verification</button>
+  <button data-tab="admin">Admin</button>
+</nav>
+
 <div class="container">
 
-<!-- AUTHENTICATION -->
 <section id="authSection" class="card">
   <h2>Welcome to HASSO</h2>
-  <p>Create your account or login.</p>
-
+  <p>Create an account or login.</p>
   <input id="regName" placeholder="Full name">
   <input id="regEmail" type="email" placeholder="Email address">
   <input id="regPassword" type="password" placeholder="Password">
   <button id="registerBtn">Create Account</button>
-
   <hr style="margin:15px 0">
-
   <input id="loginEmail" type="email" placeholder="Email address">
   <input id="loginPassword" type="password" placeholder="Password">
   <button id="loginBtn">Login</button>
-
-  <p id="authMessage" class="small"></p>
+  <p id="authMessage" class="status"></p>
 </section>
 
-<!-- MAIN APP -->
-<div id="appSection" class="hidden">
-
-<!-- PROFILE -->
-<section id="profile" class="tab card">
-  <h2>My Profile</h2>
-  <img id="profilePhoto" class="profile-photo"
-       src="https://placehold.co/100x100" alt="Profile photo">
-
-  <h3 id="profileName">User</h3>
-  <p id="profileEmail" class="small"></p>
-
-  <input id="editName" placeholder="Your name">
-  <input id="editPhoto" placeholder="Profile photo URL">
-  <button id="saveProfile">Save Profile</button>
-  <button id="logoutBtn">Logout</button>
-</section>
-
-<!-- FEED -->
-<section id="feed" class="tab card hidden">
-  <h2>HASSO Feed</h2>
+<section id="news" class="tab card hidden">
+  <h2>News Feed</h2>
   <textarea id="postText" placeholder="What's on your mind?"></textarea>
   <input id="postImage" placeholder="Image URL (optional)">
   <button id="publishPost">Publish Post</button>
   <div id="feedList"></div>
 </section>
 
-<!-- STORIES -->
 <section id="stories" class="tab card hidden">
   <h2>HASSO Stories</h2>
   <textarea id="storyText" placeholder="Write your story..."></textarea>
@@ -225,707 +84,57 @@ nav button {
   <div id="storyList"></div>
 </section>
 
-<!-- PEOPLE -->
 <section id="people" class="tab card hidden">
   <h2>People</h2>
   <input id="peopleSearch" placeholder="Search people...">
   <div id="peopleList"></div>
 </section>
 
-<!-- NOTIFICATIONS -->
-<section id="notifications" class="tab card hidden">
-  <h2>Notifications</h2>
-  <div id="notificationList"></div>
-</section>
-
-<!-- MESSAGES -->
 <section id="messages" class="tab card hidden">
   <h2>Private Messages</h2>
   <div id="chatList"></div>
+  <h3 id="chatTitle">Choose a person</h3>
   <div id="messageList"></div>
   <textarea id="messageText" placeholder="Write a message..."></textarea>
   <button id="sendMessage">Send Message</button>
 </section>
 
-<!-- SEARCH -->
+<section id="notifications" class="tab card hidden">
+  <h2>Notifications</h2>
+  <div id="notificationList"></div>
+</section>
+
 <section id="search" class="tab card hidden">
   <h2>Search HASSO</h2>
-  <input id="searchInput" placeholder="Search people or posts...">
+  <input id="searchInput" placeholder="Search people and posts...">
   <div id="searchResults"></div>
 </section>
 
-<!-- VERIFICATION -->
+<section id="profile" class="tab card hidden">
+  <h2>My Profile</h2>
+  <img id="profilePhoto" class="profile-photo"
+       src="https://placehold.co/100x100" alt="Profile">
+  <h3 id="profileName">User</h3>
+  <p id="profileEmail" class="small"></p>
+  <p id="profileStats"></p>
+  <input id="editName" placeholder="Your name">
+  <input id="editPhoto" placeholder="Profile photo URL">
+  <button id="saveProfile">Save Profile</button>
+  <button id="logoutBtn">Logout</button>
+</section>
+
 <section id="verification" class="tab card hidden">
   <h2>Account Verification</h2>
-  <p>Request a verified badge for your account.</p>
-  <textarea id="verificationReason"
-    placeholder="Why should your account be verified?"></textarea>
+  <textarea id="verificationReason" placeholder="Why are you requesting verification?"></textarea>
   <button id="requestVerification">Submit Request</button>
 </section>
 
-<!-- ADMIN -->
 <section id="admin" class="tab card hidden">
   <h2>HASSO Admin Dashboard</h2>
   <div id="adminContent"></div>
 </section>
 
 </div>
-</div>
-  
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  updateDoc,
-  deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCEYjoHliRW1jE1hgu-33QxZmsBYVc25jk",
-  authDomain: "hasso-4bc9e.firebaseapp.com",
-  projectId: "hasso-4bc9e",
-  storageBucket: "hasso-4bc9e.firebasestorage.app",
-  messagingSenderId: "150032029282",
-  appId: "1:150032029282:web:3d790c6d4ae68b3f50a33b"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const $ = id => document.getElementById(id);
-
-let currentUser = null;
-let currentProfile = null;
-let activeChat = null;
-let stopFeed = null;
-let stopStories = null;
-let stopNotifications = null;
-let stopMessages = null;
-
-function showMessage(message) {
-  alert(message);
-}
-
-function validUrl(value) {
-  try {
-    const url = new URL(value);
-    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
-  } catch {
-    return "";
-  }
-}
-
-// REGISTER
-$("registerBtn").onclick = async () => {
-  const name = $("regName").value.trim();
-  const email = $("regEmail").value.trim();
-  const password = $("regPassword").value;
-
-  if (!name || !email || !password) {
-    return showMessage("Fill in all fields.");
-  }
-
-  try {
-    const result = await createUserWithEmailAndPassword(
-      auth, email, password
-    );
-
-    await setDoc(doc(db, "users", result.user.uid), {
-      uid: result.user.uid,
-      name,
-      email,
-      photoURL: "",
-      createdAt: serverTimestamp()
-    });
-
-    showMessage("Account created successfully!");
-  } catch (error) {
-    showMessage(error.message);
-  }
-};
-
-// LOGIN
-$("loginBtn").onclick = async () => {
-  try {
-    await signInWithEmailAndPassword(
-      auth,
-      $("loginEmail").value.trim(),
-      $("loginPassword").value
-    );
-  } catch (error) {
-    showMessage(error.message);
-  }
-};
-
-// AUTH STATE
-onAuthStateChanged(auth, async user => {
-  currentUser = user;
-
-  if (user) {
-    $("authSection").classList.add("hidden");
-    $("appSection").classList.remove("hidden");
-
-    const snap = await getDoc(doc(db, "users", user.uid));
-    currentProfile = snap.exists() ? snap.data() : {
-      name: user.email,
-      photoURL: ""
-    };
-
-    $("headerUser").textContent = currentProfile.name;
-    $("profileName").textContent = currentProfile.name;
-    $("profileEmail").textContent = user.email;
-    $("editName").value = currentProfile.name || "";
-    $("editPhoto").value = currentProfile.photoURL || "";
-    $("profilePhoto").src =
-      validUrl(currentProfile.photoURL) ||
-      "https://placehold.co/100x100";
-
-    showTab("profile");
-    $("mainNav").classList.remove("hidden");
-checkAdmin();
-  } else {
-    $("authSection").classList.remove("hidden");
-    $("appSection").classList.add("hidden");
-
-    if (stopFeed) stopFeed();
-    if (stopStories) stopStories();
-    if (stopNotifications) stopNotifications();
-    if (stopMessages) stopMessages();
-  }
-});
-
-// LOGOUT
-$("logoutBtn").onclick = async () => {
-  await signOut(auth);
-};
-
-// SAVE PROFILE
-$("saveProfile").onclick = async () => {
-  if (!currentUser) return;
-
-  const name = $("editName").value.trim();
-  const photoURL = validUrl($("editPhoto").value.trim());
-
-  if (!name) return showMessage("Enter your name.");
-
-  try {
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      name,
-      photoURL
-    });
-
-    currentProfile.name = name;
-    currentProfile.photoURL = photoURL;
-
-    $("profileName").textContent = name;
-    $("headerUser").textContent = name;
-    $("profilePhoto").src =
-      photoURL || "https://placehold.co/100x100";
-
-    showMessage("Profile saved!");
-  } catch (error) {
-    showMessage(error.message);
-  }
-};
-
-// NAVIGATION
-function showTab(tabId) {
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.classList.add("hidden");
-  });
-
-  $(tabId).classList.remove("hidden");
-
-  if (tabId === "feed") loadFeed();
-  if (tabId === "stories") loadStories();
-  if (tabId === "people") loadPeople();
-  if (tabId === "notifications") loadNotifications();
-  if (tabId === "messages") loadChats();
-}
-
-// FOLLOW / UNFOLLOW
-async function followUser(uid) {
-  if (!currentUser || uid === currentUser.uid) return;
-
-  try {
-    const followRef = doc(
-      db, "users", currentUser.uid, "following", uid
-    );
-
-    const followerRef = doc(
-      db, "users", uid, "followers", currentUser.uid
-    );
-
-    const existing = await getDoc(followRef);
-
-    if (existing.exists()) {
-      await deleteDoc(followRef);
-      await deleteDoc(followerRef);
-      showMessage("You unfollowed this user.");
-    } else {
-      await setDoc(followRef, {
-        uid,
-        createdAt: serverTimestamp()
-      });
-
-      await setDoc(followerRef, {
-        uid: currentUser.uid,
-        name: currentProfile.name,
-        createdAt: serverTimestamp()
-      });
-
-      await addDoc(collection(db, "notifications"), {
-        uid,
-        fromUid: currentUser.uid,
-        fromName: currentProfile.name,
-        type: "follow",
-        text: currentProfile.name + " followed you.",
-        createdAt: serverTimestamp(),
-        read: false
-      });
-
-      showMessage("You are now following this user!");
-    }
-
-    loadPeople();
-  } catch (error) {
-    showMessage(error.message);
-  }
-}
-
-// LOAD PEOPLE
-async function loadPeople() {
-  const box = $("peopleList");
-  box.textContent = "Loading people...";
-
-  try {
-    const snapshot = await getDocs(collection(db, "users"));
-    box.innerHTML = "";
-
-    for (const personDoc of snapshot.docs) {
-      const person = personDoc.data();
-      const uid = personDoc.id;
-
-      if (uid === currentUser.uid) continue;
-
-      const following = await getDoc(
-        doc(db, "users", currentUser.uid, "following", uid)
-      );
-
-      const item = document.createElement("div");
-      item.className = "post";
-
-      const name = document.createElement("b");
-      name.textContent = person.name || "HASSO User";
-
-      const followBtn = document.createElement("button");
-      followBtn.textContent = following.exists()
-        ? "Unfollow"
-        : "Follow";
-
-      followBtn.onclick = () => followUser(uid);
-
-      item.append(name, followBtn);
-      box.appendChild(item);
-    }
-
-    if (!box.children.length) {
-      box.textContent = "No other users yet.";
-    }
-  } catch (error) {
-    box.textContent = error.message;
-  }
-}
-
-// PEOPLE SEARCH
-$("peopleSearch").oninput = async () => {
-  const term = $("peopleSearch").value.trim().toLowerCase();
-  const box = $("peopleList");
-
-  const snapshot = await getDocs(collection(db, "users"));
-  box.innerHTML = "";
-
-  snapshot.forEach(personDoc => {
-    const person = personDoc.data();
-    const uid = personDoc.id;
-
-    if (uid === currentUser.uid) return;
-
-    if ((person.name || "").toLowerCase().includes(term)) {
-      const item = document.createElement("div");
-      item.className = "post";
-
-      const name = document.createElement("b");
-      name.textContent = person.name || "HASSO User";
-
-      const button = document.createElement("button");
-      button.textContent = "Follow";
-      button.onclick = () => followUser(uid);
-
-      item.append(name, button);
-      box.appendChild(item);
-    }
-  });
-
-  if (!box.children.length) {
-    box.textContent = "No users found.";
-  }
-};
-
-// NOTIFICATIONS
-function loadNotifications() {
-  if (stopNotifications) stopNotifications();
-
-  const box = $("notificationList");
-  box.textContent = "Loading notifications...";
-
-  const q = query(
-    collection(db, "notifications"),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
-
-  stopNotifications = onSnapshot(q, snapshot => {
-    box.innerHTML = "";
-
-    snapshot.forEach(notificationDoc => {
-      const data = notificationDoc.data();
-
-      if (data.uid !== currentUser.uid) return;
-
-      const item = document.createElement("div");
-      item.className = "post";
-      item.textContent = data.text || "New notification";
-
-      box.appendChild(item);
-
-      if (!data.read) {
-        updateDoc(
-          doc(db, "notifications", notificationDoc.id),
-          { read: true }
-        ).catch(error => console.error(error));
-      }
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No notifications yet.";
-    }
-  }, error => {
-    box.textContent = error.message;
-  });
-      }
-      
-// LOAD CHATS
-async function loadChats() {
-  const box = $("chatList");
-  box.innerHTML = "Loading chats...";
-
-  try {
-    const snapshot = await getDocs(
-      collection(db, "users", currentUser.uid, "following")
-    );
-
-    box.innerHTML = "";
-
-    for (const personDoc of snapshot.docs) {
-      const uid = personDoc.id;
-      const userSnap = await getDoc(doc(db, "users", uid));
-
-      if (!userSnap.exists()) continue;
-
-      const person = userSnap.data();
-      const button = document.createElement("button");
-
-      button.textContent = "Chat with " + (person.name || "User");
-      button.onclick = () => openChat(uid, person.name || "User");
-
-      box.appendChild(button);
-    }
-
-    if (!box.children.length) {
-      box.textContent = "Follow someone first to start a chat.";
-    }
-  } catch (error) {
-    box.textContent = error.message;
-  }
-}
-
-// OPEN CHAT
-async function openChat(uid, name) {
-  activeChat = uid;
-  $("messageList").innerHTML = "";
-  $("messageList").dataset.chatUser = uid;
-
-  if (stopMessages) stopMessages();
-
-  const chatId = [currentUser.uid, uid].sort().join("_");
-
-  const messagesRef = collection(db, "chats", chatId, "messages");
-  const messagesQuery = query(
-    messagesRef,
-    orderBy("createdAt", "asc"),
-    limit(100)
-  );
-
-  stopMessages = onSnapshot(messagesQuery, snapshot => {
-    const box = $("messageList");
-    box.innerHTML = "";
-
-    snapshot.forEach(messageDoc => {
-      const message = messageDoc.data();
-
-      const item = document.createElement("div");
-      item.className = "message";
-
-      const sender = document.createElement("b");
-      sender.textContent =
-        message.senderUid === currentUser.uid ? "You" : name;
-
-      const content = document.createElement("p");
-      content.textContent = message.text || "";
-
-      item.append(sender, content);
-      box.appendChild(item);
-    });
-
-    box.scrollTop = box.scrollHeight;
-  }, error => {
-    $("messageList").textContent = error.message;
-  });
-}
-
-// SEND MESSAGE
-$("sendMessage").onclick = async () => {
-  if (!activeChat) {
-    return showMessage("Choose a person to chat with first.");
-  }
-
-  const text = $("messageText").value.trim();
-  if (!text) return;
-
-  const chatId = [currentUser.uid, activeChat].sort().join("_");
-
-  try {
-    await addDoc(
-      collection(db, "chats", chatId, "messages"),
-      {
-        senderUid: currentUser.uid,
-        receiverUid: activeChat,
-        text,
-        createdAt: serverTimestamp()
-      }
-    );
-
-    $("messageText").value = "";
-  } catch (error) {
-    showMessage(error.message);
-  }
-};
-    
-// SEARCH PEOPLE AND POSTS
-$("searchInput").oninput = async () => {
-  const term = $("searchInput").value.trim().toLowerCase();
-  const box = $("searchResults");
-
-  box.innerHTML = "Searching...";
-
-  try {
-    const [users, posts] = await Promise.all([
-      getDocs(collection(db, "users")),
-      getDocs(collection(db, "posts"))
-    ]);
-
-    box.innerHTML = "";
-
-    users.forEach(userDoc => {
-      const user = userDoc.data();
-
-      if ((user.name || "").toLowerCase().includes(term)) {
-        const item = document.createElement("div");
-        item.className = "post";
-        item.textContent = "User: " + user.name;
-        box.appendChild(item);
-      }
-    });
-
-    posts.forEach(postDoc => {
-      const post = postDoc.data();
-
-      if ((post.text || "").toLowerCase().includes(term)) {
-        const item = document.createElement("div");
-        item.className = "post";
-        item.textContent = "Post: " + post.text;
-        box.appendChild(item);
-      }
-    });
-
-    if (!box.children.length) {
-      box.textContent = "No results found.";
-    }
-  } catch (error) {
-    box.textContent = error.message;
-  }
-};
-
-// VERIFICATION REQUEST
-$("requestVerification").onclick = async () => {
-  const reason = $("verificationReason").value.trim();
-
-  if (!reason) {
-    return showMessage("Please explain why you are requesting verification.");
-  }
-
-  try {
-    await addDoc(collection(db, "verificationRequests"), {
-      uid: currentUser.uid,
-      name: currentProfile.name,
-      reason,
-      status: "pending",
-      createdAt: serverTimestamp()
-    });
-
-    $("verificationReason").value = "";
-    showMessage("Verification request submitted!");
-  } catch (error) {
-    showMessage(error.message);
-  }
-};
-
-// CHECK ADMIN
-async function checkAdmin() {
-  const box = $("adminContent");
-
-  const adminSnap = await getDoc(
-    doc(db, "admins", currentUser.uid)
-  );
-
-  if (!adminSnap.exists() ||
-      adminSnap.data().role !== "admin") {
-    $("admin").classList.add("hidden");
-    return;
-  }
-
-  $("admin").classList.remove("hidden");
-  box.innerHTML = "<h3>Admin Dashboard</h3><p>Loading requests...</p>";
-
-  const requests = await getDocs(
-    collection(db, "verificationRequests")
-  );
-
-  box.innerHTML = "";
-
-  requests.forEach(requestDoc => {
-    const request = requestDoc.data();
-
-    const item = document.createElement("div");
-    item.className = "post";
-
-    const name = document.createElement("b");
-    name.textContent = request.name || "User";
-
-    const reason = document.createElement("p");
-    reason.textContent = request.reason || "";
-
-    const status = document.createElement("p");
-    status.textContent = "Status: " + (request.status || "pending");
-
-    const approve = document.createElement("button");
-    approve.textContent = "Approve";
-
-    approve.onclick = async () => {
-      await updateDoc(
-        doc(db, "verificationRequests", requestDoc.id),
-        { status: "approved" }
-      );
-
-      await updateDoc(
-        doc(db, "users", request.uid),
-        { verified: true }
-      );
-
-      showMessage("User verified!");
-      checkAdmin();
-    };
-
-    const reject = document.createElement("button");
-    reject.textContent = "Reject";
-
-    reject.onclick = async () => {
-      await updateDoc(
-        doc(db, "verificationRequests", requestDoc.id),
-        { status: "rejected" }
-      );
-
-      showMessage("Request rejected.");
-      checkAdmin();
-    };
-
-    item.append(name, reason, status, approve, reject);
-    box.appendChild(item);
-  });
-
-  if (!box.children.length) {
-    box.textContent = "No verification requests.";
-  }
-}
-
-// START ADMIN CHECK AFTER LOGIN
-const previousAuthCheck = onAuthStateChanged;
   
-// NAVIGATION BUTTONS
-document.querySelectorAll("#mainNav button[data-tab]").forEach(button => {
-  button.addEventListener("click", async () => {
-    const tabId = button.dataset.tab;
-
-    if (tabId === "admin") {
-      const adminSnap = await getDoc(
-        doc(db, "admins", currentUser.uid)
-      );
-
-      if (!adminSnap.exists() ||
-          adminSnap.data().role !== "admin") {
-        return showMessage("Admin access only.");
-      }
-    }
-
-    showTab(tabId);
-  });
-});
-
-// SHOW NAVIGATION AFTER LOGIN
-onAuthStateChanged(auth, user => {
-  if (user) {
-    $("mainNav").classList.remove("hidden");
-    checkAdmin();
-  } else {
-    $("mainNav").classList.add("hidden");
-  }
-});
-  
-</script>
-</body>
-</html>
-
-</body>
-</html>
